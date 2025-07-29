@@ -31,7 +31,7 @@ def main():
     print("Initializing Proxmox AI Assistant secure credential storage...")
     
     # Store the root password as specified in the requirements
-    root_password = "Cl@uD3D3V"
+    root_password = os.getenv("PROXMOX_ROOT_PASSWORD", "")
     proxmox_secrets.set_proxmox_credentials(
         username="root@pam",
         password=root_password,

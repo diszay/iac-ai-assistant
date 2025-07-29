@@ -38,7 +38,7 @@ cred_manager = GitOpsCredentialManager('your_master_password')
 
 # Store credentials
 cred_manager.initialize_credentials(
-    proxmox_root_password='Cl@uD3D3V',
+    proxmox_root_password='[PROXMOX_ROOT_PASSWORD]',
     github_token='your_github_token'
 )
 ```

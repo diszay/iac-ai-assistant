@@ -327,7 +327,7 @@ def main():
     credentials = ProxmoxCredentials(
         host="192.168.1.50",
         user="root@pam",
-        password="Cl@uD3D3V",  # This should come from environment variable
+        password="[PROXMOX_ROOT_PASSWORD]",  # This should come from environment variable
         verify_ssl=False
     )
     

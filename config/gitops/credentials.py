@@ -206,7 +206,7 @@ def setup_gitops_credentials():
     cred_manager = GitOpsCredentialManager(master_password)
     
     # Store Proxmox root password
-    proxmox_password = "Cl@uD3D3V"  # Pre-configured password
+    proxmox_password = os.getenv("PROXMOX_ROOT_PASSWORD", "")  # Load from environment
     if cred_manager.store_proxmox_root_password(proxmox_password):
         print("✓ Proxmox root password stored securely")
     else:

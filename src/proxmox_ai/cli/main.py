@@ -51,9 +51,9 @@ def create_app() -> typer.Typer:
     app.callback()(lambda version: None)  # Placeholder callback
     
     # Add subcommands
-    app.add_typer(vm_commands.app, name="vm", help="VM lifecycle operations")
-    app.add_typer(config_commands.app, name="config", help="Configuration management")
-    app.add_typer(ai_commands.app, name="ai", help="AI-powered automation")
+    app.add_typer(vm_commands, name="vm", help="VM lifecycle operations")
+    app.add_typer(config_commands, name="config", help="Configuration management")
+    app.add_typer(ai_commands, name="ai", help="AI-powered automation")
     
     return app
 

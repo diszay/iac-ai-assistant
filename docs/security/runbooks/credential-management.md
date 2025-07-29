@@ -6,7 +6,7 @@ This runbook provides comprehensive procedures for secure credential management 
 
 ## Critical Security Note
 
-**Root Password**: `Cl@uD3D3V` (192.168.1.50)
+**Root Password**: `[PROXMOX_ROOT_PASSWORD]` (192.168.1.50)
 - **Security Status**: HIGH RISK - Requires immediate secure handling
 - **Access Control**: Restricted to authorized personnel only
 - **Rotation Schedule**: Every 90 days or immediately upon suspected compromise
@@ -49,7 +49,7 @@ cat << 'EOF' | sudo tee /etc/proxmox-ai/credentials.env
 
 # Proxmox Host Access
 PROXMOX_HOST=192.168.1.50
-PROXMOX_ROOT_PASSWORD=Cl@uD3D3V
+PROXMOX_ROOT_PASSWORD=[PROXMOX_ROOT_PASSWORD]
 PROXMOX_SSH_PORT=2849
 
 # API Authentication

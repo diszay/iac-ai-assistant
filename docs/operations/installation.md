@@ -29,7 +29,7 @@ This guide provides comprehensive installation procedures for the Proxmox AI Inf
 ### Security Prerequisites
 
 #### Credential Management
-- Secure storage for root password: `Cl@uD3D3V`
+- Secure storage for root password: `[PROXMOX_ROOT_PASSWORD]`
 - SSH key pair generation and secure storage
 - API token generation and secure management
 - Backup of all security credentials
@@ -203,7 +203,7 @@ cat << 'EOF' > /etc/proxmox-ai/credentials.env
 
 # Proxmox Host Configuration
 PROXMOX_HOST=192.168.1.50
-PROXMOX_ROOT_PASSWORD=Cl@uD3D3V
+PROXMOX_ROOT_PASSWORD=[PROXMOX_ROOT_PASSWORD]
 PROXMOX_SSH_PORT=2849
 PROXMOX_SSH_KEY_PATH=/home/$USER/.ssh/proxmox_ai_key
 
