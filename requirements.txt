@@ -1,0 +1,51 @@
+# Core CLI Framework
+typer>=0.12.0
+rich>=13.7.0
+click>=8.1.7
+
+# Proxmox API Integration
+proxmoxer>=2.0.1
+requests>=2.31.0
+urllib3>=2.0.0
+
+# AI Integration
+anthropic>=0.25.0
+openai>=1.30.0  # Backup AI provider
+
+# Security & Encryption
+cryptography>=42.0.0
+keyring>=24.3.0
+python-gnupg>=0.5.2
+
+# Configuration & Environment
+pydantic>=2.7.0
+pydantic-settings>=2.2.0
+python-dotenv>=1.0.0
+toml>=0.10.2
+
+# Async Support
+aiohttp>=3.9.0
+asyncio-mqtt>=0.16.0
+httpx>=0.27.0
+
+# Infrastructure as Code
+jinja2>=3.1.0
+ansible-runner>=2.3.0
+terraform-runner>=0.1.0
+
+# Development & Testing
+pytest>=8.2.0
+pytest-asyncio>=0.23.0
+pytest-cov>=5.0.0
+black>=24.4.0
+isort>=5.13.0
+mypy>=1.10.0
+
+# Logging & Monitoring
+structlog>=24.1.0
+prometheus-client>=0.20.0
+
+# Utilities
+python-dateutil>=2.9.0
+click-spinner>=0.1.10
+tabulate>=0.9.0

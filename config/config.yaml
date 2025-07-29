@@ -1,0 +1,131 @@
+# Proxmox Infrastructure Configuration Management
+# This file contains non-sensitive configuration settings
+
+proxmox:
+  cluster:
+    name: "proxmox-iac-cluster"
+    host: "192.168.1.50"
+    port: 8006
+    verify_ssl: true
+    timeout: 30
+  
+  api:
+    version: "v2"
+    format: "json"
+  
+  resource_pools:
+    development: "dev-pool"
+    staging: "staging-pool" 
+    production: "prod-pool"
+
+vm_templates:
+  base_images:
+    ubuntu_22_04:
+      template_id: 9000
+      name: "ubuntu-22.04-template"
+      description: "Ubuntu 22.04 LTS base template"
+      os_type: "l26"
+      memory: 2048
+      cores: 2
+      storage: "local-lvm"
+      network: "vmbr0"
+    
+    debian_12:
+      template_id: 9001
+      name: "debian-12-template"
+      description: "Debian 12 base template"
+      os_type: "l26"
+      memory: 2048
+      cores: 2
+      storage: "local-lvm"
+      network: "vmbr0"
+
+  versioning:
+    format: "YYYYMMDD-HHMMSS"
+    retention_policy:
+      development: 5  # Keep last 5 versions
+      staging: 10     # Keep last 10 versions
+      production: 20  # Keep last 20 versions
+
+backup:
+  schedule:
+    daily: "02:00"
+    weekly: "Sunday 03:00"
+    monthly: "1st Sunday 04:00"
+  
+  retention:
+    daily: 7    # Keep 7 daily backups
+    weekly: 4   # Keep 4 weekly backups
+    monthly: 12 # Keep 12 monthly backups
+  
+  storage:
+    local: "local"
+    remote: "nfs-backup"
+  
+  compression: "zstd"
+  encryption: true
+
+cloud_init:
+  default_user: "ubuntu"
+  ssh_keys_file: "/config/secrets/ssh_public_keys"
+  timezone: "UTC"
+  locale: "en_US.UTF-8"
+  
+  packages:
+    base:
+      - curl
+      - wget
+      - vim
+      - git
+      - htop
+      - unzip
+    
+    monitoring:
+      - prometheus-node-exporter
+      - telegraf
+    
+    security:
+      - fail2ban
+      - ufw
+      - aide
+
+network:
+  subnets:
+    management: "192.168.1.0/24"
+    development: "192.168.10.0/24"
+    staging: "192.168.20.0/24"
+    production: "192.168.30.0/24"
+  
+  vlans:
+    management: 1
+    development: 10
+    staging: 20
+    production: 30
+
+monitoring:
+  prometheus:
+    scrape_interval: "15s"
+    retention: "30d"
+  
+  grafana:
+    dashboards: true
+    alerts: true
+  
+  log_aggregation:
+    enabled: true
+    retention: "90d"
+
+security:
+  hardening:
+    disable_root_login: true
+    require_ssh_keys: true
+    fail2ban_enabled: true
+    firewall_enabled: true
+  
+  audit:
+    log_level: "INFO"
+    retention: "1y"
+    
+  compliance:
+    cis_benchmarks: true
+    vulnerability_scanning: true
