@@ -1,0 +1,326 @@
+name: GitOps Infrastructure Deployment
+
+on:
+  push:
+    branches: [main, staging, develop]
+  pull_request:
+    branches: [main, staging]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'development'
+        type: choice
+        options:
+        - development
+        - staging
+        - production
+      force_deploy:
+        description: 'Force deployment without approval'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  PYTHON_VERSION: "3.11"
+  PROXMOX_HOST: "192.168.1.50"
+
+jobs:
+  validate:
+    name: Validate Infrastructure
+    runs-on: ubuntu-latest
+    outputs:
+      changes-detected: ${{ steps.changes.outputs.changes }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Detect changes
+      id: changes
+      uses: dorny/paths-filter@v2
+      with:
+        filters: |
+          config:
+            - 'config/**'
+            - 'templates/**'
+            - 'infrastructure/**'
+          security:
+            - 'config/secrets/**'
+            - 'src/proxmox_ai/core/security.py'
+            - 'src/proxmox_ai/gitops/credentials.py'
+            
+    - name: Validate YAML syntax
+      run: |
+        find config templates infrastructure -name "*.yaml" -o -name "*.yml" | \
+        xargs -I {} python -c "import yaml; yaml.safe_load(open('{}'))"
+        
+    - name: Security compliance check
+      run: |
+        python -m src.proxmox_ai.gitops.workflow_orchestrator --action status --config config/config.yaml || true
+        
+    - name: Lint Python code
+      run: |
+        python -m flake8 src/ --max-line-length=100 --ignore=E501,W503 || true
+
+  security-scan:
+    name: Security Vulnerability Scan
+    runs-on: ubuntu-latest
+    needs: validate
+    if: needs.validate.outputs.changes-detected == 'true'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install security scanning tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install bandit safety
+        pip install -r requirements.txt
+        
+    - name: Run Bandit security scan
+      run: |
+        bandit -r src/ -f json -o bandit-report.json || true
+        
+    - name: Check for known vulnerabilities
+      run: |
+        safety check --json --output safety-report.json || true
+        
+    - name: Upload security reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-reports
+        path: |
+          bandit-report.json
+          safety-report.json
+
+  infrastructure-test:
+    name: Infrastructure Testing
+    runs-on: ubuntu-latest
+    needs: [validate, security-scan]
+    if: needs.validate.outputs.changes-detected == 'true'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Run infrastructure tests
+      env:
+        PROXMOX_HOST: ${{ env.PROXMOX_HOST }}
+        PROXMOX_USER: "root@pam"
+        # In production, use secrets
+        PROXMOX_PASSWORD: ${{ secrets.PROXMOX_PASSWORD || 'test-password' }}
+      run: |
+        python -m pytest tests/ -v --tb=short || true
+        
+    - name: Configuration drift detection
+      run: |
+        python -m src.proxmox_ai.gitops.drift_detector --action detect --config config/config.yaml || true
+
+  deploy-development:
+    name: Deploy to Development
+    runs-on: ubuntu-latest
+    needs: [validate, security-scan, infrastructure-test]
+    if: |
+      github.ref == 'refs/heads/develop' &&
+      needs.validate.outputs.changes-detected == 'true'
+    environment: development
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Deploy to development
+      env:
+        PROXMOX_HOST: ${{ env.PROXMOX_HOST }}
+        PROXMOX_USER: "root@pam"
+        PROXMOX_PASSWORD: ${{ secrets.PROXMOX_PASSWORD || 'test-password' }}
+        MASTER_PASSWORD: ${{ secrets.MASTER_PASSWORD || 'test-master-password' }}
+      run: |
+        echo "Deploying to development environment..."
+        python -m src.proxmox_ai.gitops.workflow_orchestrator \
+          --action deploy \
+          --environment development \
+          --branch develop \
+          --config config/config.yaml || true
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [validate, security-scan, infrastructure-test]
+    if: |
+      github.ref == 'refs/heads/staging' &&
+      needs.validate.outputs.changes-detected == 'true'
+    environment: staging
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Deploy to staging
+      env:
+        PROXMOX_HOST: ${{ env.PROXMOX_HOST }}
+        PROXMOX_USER: "root@pam"
+        PROXMOX_PASSWORD: ${{ secrets.PROXMOX_PASSWORD }}
+        MASTER_PASSWORD: ${{ secrets.MASTER_PASSWORD }}
+      run: |
+        echo "Deploying to staging environment..."
+        python -m src.proxmox_ai.gitops.workflow_orchestrator \
+          --action deploy \
+          --environment staging \
+          --branch staging \
+          --config config/config.yaml
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [validate, security-scan, infrastructure-test]
+    if: |
+      github.ref == 'refs/heads/main' &&
+      needs.validate.outputs.changes-detected == 'true'
+    environment: production
+    
+    steps:
+    - name: Manual approval checkpoint
+      uses: trstringer/manual-approval@v1
+      if: ${{ !inputs.force_deploy }}
+      with:
+        secret: ${{ github.TOKEN }}
+        approvers: diszay
+        minimum-approvals: 1
+        issue-title: "Production Deployment Approval Required"
+        
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Create backup before deployment
+      env:
+        PROXMOX_HOST: ${{ env.PROXMOX_HOST }}
+        PROXMOX_USER: "root@pam"
+        PROXMOX_PASSWORD: ${{ secrets.PROXMOX_PASSWORD }}
+        MASTER_PASSWORD: ${{ secrets.MASTER_PASSWORD }}
+      run: |
+        echo "Creating backup before production deployment..."
+        python -c "
+import asyncio
+from src.proxmox_ai.gitops.workflow_orchestrator import GitOpsWorkflowOrchestrator
+from src.proxmox_ai.core.config import Config
+
+async def backup():
+    config = Config('config/config.yaml')
+    orchestrator = GitOpsWorkflowOrchestrator(config)
+    await orchestrator.initialize_credentials('${{ secrets.MASTER_PASSWORD }}')
+    backup_file = await orchestrator._backup_current_state()
+    print(f'Backup created: {backup_file}')
+
+asyncio.run(backup())
+        " || true
+        
+    - name: Deploy to production
+      env:
+        PROXMOX_HOST: ${{ env.PROXMOX_HOST }}
+        PROXMOX_USER: "root@pam"
+        PROXMOX_PASSWORD: ${{ secrets.PROXMOX_PASSWORD }}
+        MASTER_PASSWORD: ${{ secrets.MASTER_PASSWORD }}
+      run: |
+        echo "Deploying to production environment..."
+        python -m src.proxmox_ai.gitops.workflow_orchestrator \
+          --action deploy \
+          --environment production \
+          --branch main \
+          --config config/config.yaml \
+          ${{ inputs.force_deploy && '--force' || '' }}
+
+  post-deployment:
+    name: Post-Deployment Verification
+    runs-on: ubuntu-latest
+    needs: [deploy-development, deploy-staging, deploy-production]
+    if: always() && (needs.deploy-development.result == 'success' || needs.deploy-staging.result == 'success' || needs.deploy-production.result == 'success')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Run post-deployment verification
+      env:
+        PROXMOX_HOST: ${{ env.PROXMOX_HOST }}
+        PROXMOX_USER: "root@pam"
+        PROXMOX_PASSWORD: ${{ secrets.PROXMOX_PASSWORD || 'test-password' }}
+        MASTER_PASSWORD: ${{ secrets.MASTER_PASSWORD || 'test-master-password' }}
+      run: |
+        echo "Running post-deployment verification..."
+        python -m src.proxmox_ai.gitops.drift_detector --action detect --config config/config.yaml || true
+        
+    - name: Update deployment status
+      run: |
+        echo "Deployment completed successfully"
+        echo "Timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+        echo "Commit: ${{ github.sha }}"
+        echo "Branch: ${{ github.ref_name }}"

@@ -1,0 +1,321 @@
+name: Configuration Drift Monitoring
+
+on:
+  schedule:
+    # Run every 15 minutes
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+    inputs:
+      create_baseline:
+        description: 'Create new baseline configuration'
+        required: false
+        default: false
+        type: boolean
+      remediate_drift:
+        description: 'Automatically remediate detected drift'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  PYTHON_VERSION: "3.11"
+  PROXMOX_HOST: "192.168.1.50"
+
+jobs:
+  drift-detection:
+    name: Detect Configuration Drift
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Create baseline if requested
+      if: ${{ inputs.create_baseline }}
+      env:
+        PROXMOX_HOST: ${{ env.PROXMOX_HOST }}
+        PROXMOX_USER: "root@pam"
+        PROXMOX_PASSWORD: ${{ secrets.PROXMOX_PASSWORD }}
+        MASTER_PASSWORD: ${{ secrets.MASTER_PASSWORD }}
+      run: |
+        echo "Creating new baseline configuration..."
+        python -m src.proxmox_ai.gitops.drift_detector \
+          --action baseline \
+          --config config/config.yaml
+          
+    - name: Detect configuration drift
+      id: drift-check
+      env:
+        PROXMOX_HOST: ${{ env.PROXMOX_HOST }}
+        PROXMOX_USER: "root@pam"
+        PROXMOX_PASSWORD: ${{ secrets.PROXMOX_PASSWORD || 'test-password' }}
+        MASTER_PASSWORD: ${{ secrets.MASTER_PASSWORD || 'test-master-password' }}
+      run: |
+        echo "Detecting configuration drift..."
+        
+        # Run drift detection and capture output
+        python -m src.proxmox_ai.gitops.drift_detector \
+          --action detect \
+          --config config/config.yaml > drift_output.txt 2>&1 || true
+          
+        # Check if drift was detected
+        if grep -q "drift detected" drift_output.txt; then
+          echo "drift-detected=true" >> $GITHUB_OUTPUT
+          echo "DRIFT DETECTED!"
+        else
+          echo "drift-detected=false" >> $GITHUB_OUTPUT
+          echo "No drift detected"
+        fi
+        
+        # Display results
+        cat drift_output.txt
+        
+    - name: Upload drift reports
+      if: steps.drift-check.outputs.drift-detected == 'true'
+      uses: actions/upload-artifact@v3
+      with:
+        name: drift-reports-${{ github.run_number }}
+        path: |
+          logs/drift_report_*.json
+          config/baselines/
+        retention-days: 30
+        
+    - name: Auto-remediate drift
+      if: |
+        steps.drift-check.outputs.drift-detected == 'true' && 
+        inputs.remediate_drift
+      env:
+        PROXMOX_HOST: ${{ env.PROXMOX_HOST }}
+        PROXMOX_USER: "root@pam"
+        PROXMOX_PASSWORD: ${{ secrets.PROXMOX_PASSWORD }}
+        MASTER_PASSWORD: ${{ secrets.MASTER_PASSWORD }}
+      run: |
+        echo "Attempting to auto-remediate detected drift..."
+        
+        python -c "
+import asyncio
+import json
+from pathlib import Path
+from src.proxmox_ai.gitops.drift_detector import ProxmoxDriftDetector, DriftDetection
+from src.proxmox_ai.core.config import Config
+
+async def remediate():
+    config = Config('config/config.yaml')
+    detector = ProxmoxDriftDetector(config)
+    
+    # Load latest drift report
+    logs_path = Path('logs')
+    if logs_path.exists():
+        reports = list(logs_path.glob('drift_report_*.json'))
+        if reports:
+            latest_report = max(reports, key=lambda p: p.stat().st_mtime)
+            
+            with open(latest_report, 'r') as f:
+                report_data = json.load(f)
+            
+            # Only remediate low-severity issues automatically
+            remediated = 0
+            for issue_data in report_data.get('drift_issues', []):
+                if issue_data.get('severity') == 'low':
+                    # Convert back to DriftDetection object
+                    issue = DriftDetection(
+                        resource_type=issue_data['resource_type'],
+                        resource_id=issue_data['resource_id'],
+                        attribute=issue_data['attribute'],
+                        expected_value=issue_data['expected_value'],
+                        actual_value=issue_data['actual_value'],
+                        severity=issue_data['severity'],
+                        detected_at=issue_data['detected_at'],
+                        remediation_required=issue_data['remediation_required']
+                    )
+                    
+                    if await detector.remediate_drift(issue):
+                        remediated += 1
+            
+            print(f'Auto-remediated {remediated} low-severity drift issues')
+
+asyncio.run(remediate())
+        " || true
+
+  alert-critical-drift:
+    name: Alert on Critical Drift
+    runs-on: ubuntu-latest
+    needs: drift-detection
+    if: needs.drift-detection.outputs.drift-detected == 'true'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download drift reports
+      uses: actions/download-artifact@v3
+      with:
+        name: drift-reports-${{ github.run_number }}
+        path: ./reports
+        
+    - name: Analyze drift severity
+      id: analyze
+      run: |
+        echo "Analyzing drift severity..."
+        
+        # Check for critical drift issues
+        if find ./reports -name "drift_report_*.json" -exec grep -l '"severity": "critical"' {} \; | head -1; then
+          echo "critical-drift=true" >> $GITHUB_OUTPUT
+          echo "CRITICAL DRIFT DETECTED!"
+        else
+          echo "critical-drift=false" >> $GITHUB_OUTPUT
+          echo "No critical drift found"
+        fi
+        
+    - name: Create issue for critical drift
+      if: steps.analyze.outputs.critical-drift == 'true'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+          
+          // Find drift report files
+          const reportsDir = './reports';
+          const reportFiles = fs.readdirSync(reportsDir)
+            .filter(file => file.startsWith('drift_report_') && file.endsWith('.json'));
+          
+          if (reportFiles.length === 0) {
+            console.log('No drift reports found');
+            return;
+          }
+          
+          // Read the latest report
+          const latestReport = path.join(reportsDir, reportFiles[0]);
+          const reportData = JSON.parse(fs.readFileSync(latestReport, 'utf8'));
+          
+          // Filter critical issues
+          const criticalIssues = reportData.drift_issues.filter(
+            issue => issue.severity === 'critical'
+          );
+          
+          if (criticalIssues.length === 0) {
+            console.log('No critical drift issues found');
+            return;
+          }
+          
+          // Create issue body
+          let issueBody = `# Critical Configuration Drift Detected\n\n`;
+          issueBody += `**Detection Time:** ${reportData.report_generated_at}\n`;
+          issueBody += `**Total Issues:** ${reportData.total_drift_issues}\n`;
+          issueBody += `**Critical Issues:** ${criticalIssues.length}\n\n`;
+          
+          issueBody += `## Critical Drift Issues\n\n`;
+          
+          criticalIssues.forEach((issue, index) => {
+            issueBody += `### Issue ${index + 1}: ${issue.resource_type}.${issue.resource_id}\n`;
+            issueBody += `- **Attribute:** ${issue.attribute}\n`;
+            issueBody += `- **Expected:** ${issue.expected_value}\n`;
+            issueBody += `- **Actual:** ${issue.actual_value}\n`;
+            issueBody += `- **Detected:** ${issue.detected_at}\n\n`;
+          });
+          
+          issueBody += `## Action Required\n\n`;
+          issueBody += `Critical configuration drift has been detected and requires immediate attention. `;
+          issueBody += `Please review the drift issues above and take appropriate remediation actions.\n\n`;
+          issueBody += `**Workflow Run:** [${context.runNumber}](${context.payload.repository.html_url}/actions/runs/${context.runId})\n`;
+          
+          // Create the issue
+          await github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: `🚨 Critical Configuration Drift Detected - ${new Date().toISOString().split('T')[0]}`,
+            body: issueBody,
+            labels: ['critical', 'drift-detection', 'security']
+          });
+          
+    - name: Send Slack notification (optional)
+      if: steps.analyze.outputs.critical-drift == 'true'
+      run: |
+        echo "Would send Slack notification about critical drift"
+        echo "Webhook URL would be configured in secrets.SLACK_WEBHOOK_URL"
+        # Actual Slack notification would be implemented here
+
+  schedule-drift-remediation:
+    name: Schedule Drift Remediation
+    runs-on: ubuntu-latest
+    needs: [drift-detection, alert-critical-drift]
+    if: |
+      needs.drift-detection.outputs.drift-detected == 'true' &&
+      needs.alert-critical-drift.outputs.critical-drift != 'true'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Create pull request for drift remediation
+      uses: actions/github-script@v6
+      with:
+        script: |
+          // Create a branch for drift remediation
+          const branchName = `drift-remediation-${Date.now()}`;
+          
+          // Get the current commit SHA
+          const { data: ref } = await github.rest.git.getRef({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: 'heads/main'
+          });
+          
+          // Create new branch
+          await github.rest.git.createRef({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: `refs/heads/${branchName}`,
+            sha: ref.object.sha
+          });
+          
+          // Create pull request
+          const prTitle = `🔧 Automated Drift Remediation - ${new Date().toISOString().split('T')[0]}`;
+          const prBody = `# Automated Configuration Drift Remediation\n\n` +
+            `This PR contains automated fixes for detected configuration drift.\n\n` +
+            `**Detection Run:** [${context.runNumber}](${context.payload.repository.html_url}/actions/runs/${context.runId})\n\n` +
+            `## Changes\n\n` +
+            `- Configuration drift remediation\n` +
+            `- Updated baseline configurations\n\n` +
+            `## Review Required\n\n` +
+            `Please review these changes carefully before merging.`;
+          
+          await github.rest.pulls.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: prTitle,
+            body: prBody,
+            head: branchName,
+            base: 'main',
+            draft: false
+          });
+
+  update-monitoring-dashboard:
+    name: Update Monitoring Dashboard
+    runs-on: ubuntu-latest
+    needs: drift-detection
+    if: always()
+    
+    steps:
+    - name: Update drift monitoring metrics
+      run: |
+        echo "Updating monitoring dashboard..."
+        echo "Drift Detection Status: ${{ needs.drift-detection.outputs.drift-detected }}"
+        echo "Run Time: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+        echo "Commit: ${{ github.sha }}"
+        
+        # In a real implementation, this would update monitoring systems
+        # like Grafana, Prometheus, or other monitoring tools

@@ -1,0 +1,207 @@
+# GitOps Workflow Configuration for Proxmox Infrastructure
+# This file defines the GitOps workflow for managing Proxmox infrastructure as code
+
+workflow:
+  name: "Proxmox Infrastructure GitOps"
+  version: "1.0.0"
+  
+environments:
+  development:
+    branch: "develop"
+    proxmox_host: "192.168.1.50"
+    auto_deploy: true
+    approval_required: false
+    
+  staging:
+    branch: "staging"
+    proxmox_host: "192.168.1.50"
+    auto_deploy: true
+    approval_required: true
+    
+  production:
+    branch: "main"
+    proxmox_host: "192.168.1.50"
+    auto_deploy: false
+    approval_required: true
+
+# Branch protection and merge policies
+branch_policies:
+  main:
+    protected: true
+    require_reviews: 2
+    require_status_checks: true
+    required_checks:
+      - "security-scan"
+      - "infrastructure-validation"
+      - "configuration-drift-check"
+    dismiss_stale_reviews: true
+    
+  staging:
+    protected: true
+    require_reviews: 1
+    require_status_checks: true
+    required_checks:
+      - "security-scan"
+      - "infrastructure-validation"
+      
+  develop:
+    protected: false
+    require_reviews: 0
+    require_status_checks: false
+
+# Infrastructure deployment pipeline
+deployment_pipeline:
+  stages:
+    - name: "validation"
+      steps:
+        - validate_yaml_syntax
+        - validate_proxmox_connectivity
+        - validate_vm_templates
+        - security_compliance_check
+        
+    - name: "testing"
+      steps:
+        - run_infrastructure_tests
+        - validate_configuration_drift
+        - security_vulnerability_scan
+        
+    - name: "deployment"
+      steps:
+        - backup_current_state
+        - apply_infrastructure_changes
+        - verify_deployment
+        - update_monitoring
+        
+    - name: "verification"
+      steps:
+        - health_check
+        - performance_validation
+        - security_post_deployment_scan
+
+# Configuration drift detection
+drift_detection:
+  enabled: true
+  schedule: "*/15 * * * *"  # Every 15 minutes
+  
+  monitors:
+    - name: "vm_configurations"
+      type: "vm_config_drift"
+      alert_threshold: "medium"
+      
+    - name: "network_settings"
+      type: "network_drift"
+      alert_threshold: "high"
+      
+    - name: "storage_configuration"
+      type: "storage_drift"
+      alert_threshold: "high"
+      
+    - name: "user_permissions"
+      type: "security_drift"
+      alert_threshold: "critical"
+
+# Backup and recovery configuration
+backup_strategy:
+  retention_policy:
+    daily: 7
+    weekly: 4
+    monthly: 12
+    
+  backup_types:
+    - vm_snapshots
+    - configuration_files
+    - infrastructure_state
+    
+  recovery_testing:
+    enabled: true
+    schedule: "0 2 * * 0"  # Weekly on Sunday at 2 AM
+
+# Security policies
+security:
+  encryption:
+    at_rest: true
+    in_transit: true
+    
+  access_control:
+    rbac_enabled: true
+    mfa_required: true
+    
+  compliance:
+    frameworks:
+      - "CIS_CONTROLS"
+      - "NIST_CSF"
+      
+  vulnerability_management:
+    scan_frequency: "daily"
+    auto_patch: false
+    critical_alert: true
+
+# Monitoring and alerting
+monitoring:
+  infrastructure_health:
+    enabled: true
+    interval: "5m"
+    
+  performance_metrics:
+    enabled: true
+    retention: "30d"
+    
+  alerting:
+    channels:
+      - type: "email"
+        recipients: ["admin@proxmox.local"]
+      - type: "webhook"
+        url: "https://hooks.slack.com/services/..."
+    
+    severity_levels:
+      critical: 
+        escalation_time: "5m"
+        notification_methods: ["email", "webhook"]
+      high:
+        escalation_time: "15m"
+        notification_methods: ["email"]
+      medium:
+        escalation_time: "1h"
+        notification_methods: ["email"]
+
+# Template management
+templates:
+  versioning:
+    enabled: true
+    naming_convention: "template-{name}-{version}-{date}"
+    
+  lifecycle:
+    testing_period: "7d"
+    deprecation_notice: "30d"
+    removal_grace_period: "90d"
+    
+  security_hardening:
+    enabled: true
+    baseline: "CIS_UBUNTU_20.04"
+    
+  automated_updates:
+    security_patches: true
+    package_updates: false
+    kernel_updates: false
+
+# Integration settings
+integrations:
+  git:
+    provider: "github"
+    webhook_events:
+      - "push"
+      - "pull_request"
+      - "release"
+      
+  proxmox:
+    api_endpoint: "https://192.168.1.50:8006/api2/json"
+    ssl_verify: true
+    connection_pool_size: 10
+    
+  secrets_management:
+    provider: "local_encrypted"
+    rotation_policy: "90d"
+    
+  ci_cd:
+    provider: "github_actions"
+    runner_tags: ["proxmox", "infrastructure"]
