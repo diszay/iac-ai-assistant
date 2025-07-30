@@ -62,17 +62,18 @@ def generate(
     )
 ):
     """
-    Generate infrastructure code using AI.
+    Generate infrastructure code using hardware-optimized local AI.
     
     Creates Terraform configurations, Ansible playbooks, VM configurations,
-    or Docker compositions based on natural language descriptions.
+    or Docker compositions using memory-efficient local models optimized 
+    for your hardware specifications.
     
     Examples:
-      proxmox-ai ai generate vm "Ubuntu 22.04 web server with 4GB RAM"
-      proxmox-ai ai generate terraform "3-tier web app with load balancer"
-      proxmox-ai ai generate ansible "Deploy LAMP stack on 5 servers"
+      proxmox-ai ai generate vm "Ubuntu 22.04 web server with 4GB RAM" --skill beginner
+      proxmox-ai ai generate terraform "3-tier web app with load balancer" --local
+      proxmox-ai ai generate ansible "Deploy LAMP stack on 5 servers" --skill expert
     """
-    asyncio.run(_generate_code(resource_type, description, output_file, template, interactive, validate))
+    asyncio.run(_generate_code(resource_type, description, output_file, template, interactive, validate, skill_level, use_local))
 
 
 async def _generate_code(
@@ -81,27 +82,46 @@ async def _generate_code(
     output_file: Optional[Path],
     template: Optional[str],
     interactive: bool,
-    validate: bool
+    validate: bool,
+    skill_level: str = "intermediate",
+    use_local: bool = True
 ):
-    """Async implementation of AI code generation."""
+    """Async implementation of hardware-optimized AI code generation."""
     try:
         settings = get_settings()
         
-        if not settings.enable_ai_generation:
-            console.print("[red]AI generation is disabled. Enable it in configuration.[/red]")
-            raise typer.Exit(1)
+        # Determine optimal skill level based on hardware
+        optimal_skill = skill_manager.get_optimal_skill_level(skill_level)
+        if optimal_skill != skill_level:
+            console.print(f"[yellow]Note: Adjusted skill level to '{optimal_skill}' based on hardware capabilities[/yellow]")
+            skill_level = optimal_skill
         
-        if not settings.anthropic.api_key:
-            console.print("[red]No Anthropic API key configured. Run 'proxmox-ai config setup'.[/red]")
-            raise typer.Exit(1)
-        
+        # Display hardware and model information
+        model_info = optimized_ai_client.get_model_info()
         console.print(Panel.fit(
-            f"[bold blue]Generating {resource_type} configuration[/bold blue]\n"
+            f"[bold blue]Hardware-Optimized AI Generation[/bold blue]\n"
+            f"[cyan]Resource Type: {resource_type}[/cyan]\n"
+            f"[cyan]Skill Level: {skill_level}[/cyan]\n"
+            f"[cyan]Model: {model_info['current_model']}[/cyan]\n"
             f"[cyan]Description: {description}[/cyan]",
             style="blue"
         ))
         
-        ai_service = AIService()
+        # Use local AI client or fall back to cloud
+        if use_local and await optimized_ai_client.is_available():
+            ai_client = optimized_ai_client
+            console.print("[green]Using optimized local AI model[/green]")
+        else:
+            if not settings.enable_ai_generation:
+                console.print("[red]AI generation is disabled. Enable it in configuration.[/red]")
+                raise typer.Exit(1)
+            
+            if not settings.anthropic.api_key:
+                console.print("[red]No Anthropic API key configured. Run 'proxmox-ai config setup'.[/red]")
+                raise typer.Exit(1)
+            
+            ai_client = AIService()
+            console.print("[yellow]Falling back to cloud AI service[/yellow]")
         
         with Progress(
             SpinnerColumn(),
@@ -110,17 +130,33 @@ async def _generate_code(
         ) as progress:
             task = progress.add_task("Generating code with AI...", total=None)
             
-            # Generate the code
-            if resource_type.lower() == "vm":
-                result = await ai_service.generate_vm_config(description, template)
-            elif resource_type.lower() == "terraform":
-                result = await ai_service.generate_terraform_config(description, template)
-            elif resource_type.lower() == "ansible":
-                result = await ai_service.generate_ansible_playbook(description, template)
-            elif resource_type.lower() == "docker":
-                result = await ai_service.generate_docker_compose(description, template)
+            # Generate the code using appropriate AI client
+            if isinstance(ai_client, AIService):
+                # Cloud AI service
+                if resource_type.lower() == "vm":
+                    result = await ai_client.generate_vm_config(description, template)
+                elif resource_type.lower() == "terraform":
+                    result = await ai_client.generate_terraform_config(description, template)
+                elif resource_type.lower() == "ansible":
+                    result = await ai_client.generate_ansible_playbook(description, template)
+                elif resource_type.lower() == "docker":
+                    result = await ai_client.generate_docker_compose(description, template)
+                else:
+                    raise ValueError(f"Unsupported resource type: {resource_type}")
             else:
-                raise ValueError(f"Unsupported resource type: {resource_type}")
+                # Local AI client - convert response format
+                if resource_type.lower() == "terraform":
+                    ai_response = await ai_client.generate_terraform_config(description, skill_level)
+                elif resource_type.lower() == "ansible":
+                    ai_response = await ai_client.generate_ansible_playbook(description, skill_level)
+                else:
+                    raise ValueError(f"Unsupported resource type for local AI: {resource_type}")
+                
+                # Convert local AI response to expected format
+                result = {
+                    'code': ai_response.content,
+                    'explanation': f"Generated using {ai_response.model_used} in {ai_response.processing_time:.2f}s"
+                }
             
             progress.update(task, completed=True)
         
@@ -648,6 +684,248 @@ async def _explain_config(config_file: Path, detail_level: str):
         logger.error("Configuration explanation failed", error=str(e))
         console.print(f"[red]Error: {e}[/red]")
         raise typer.Exit(1)
+
+
+@app.command()
+def status():
+    """
+    Show local AI system status and performance metrics.
+    
+    Displays hardware capabilities, model information, and performance statistics.
+    """
+    asyncio.run(_show_ai_status())
+
+
+async def _show_ai_status():
+    """Display comprehensive AI system status."""
+    try:
+        # Hardware information
+        hardware_specs = hardware_detector.specs
+        performance_profile = hardware_detector.get_performance_profile()
+        model_info = optimized_ai_client.get_model_info()
+        perf_stats = optimized_ai_client.get_performance_stats()
+        system_status = model_manager.get_system_status()
+        
+        # Hardware Status Table
+        hardware_table = Table(title="Hardware Status", show_header=True)
+        hardware_table.add_column("Component", style="bold cyan")
+        hardware_table.add_column("Specification", style="green")
+        hardware_table.add_column("Status", style="yellow")
+        
+        hardware_table.add_row("CPU", f"{hardware_specs.cpu_model} ({hardware_specs.cpu_cores} cores)", "Active")
+        hardware_table.add_row("Memory", f"{hardware_specs.total_memory_gb:.1f}GB total, {hardware_specs.available_memory_gb:.1f}GB available", "Optimal")
+        hardware_table.add_row("GPU", "Available" if hardware_specs.gpu_available else "Not Available", "Detected" if hardware_specs.gpu_available else "CPU Only")
+        
+        console.print(hardware_table)
+        console.print()
+        
+        # Model Information Table  
+        model_table = Table(title="AI Model Status", show_header=True)
+        model_table.add_column("Property", style="bold cyan")
+        model_table.add_column("Value", style="green")
+        
+        model_table.add_row("Current Model", model_info["current_model"])
+        model_table.add_row("Recommended Model", model_info["recommended_model"])
+        model_table.add_row("Model Size", model_info["model_size"])
+        model_table.add_row("Quantization", model_info["quantization"])
+        model_table.add_row("Memory Usage", f"{model_info['memory_usage_gb']:.1f}GB")
+        model_table.add_row("Performance Tier", performance_profile["model_quality"])
+        
+        console.print(model_table)
+        console.print()
+        
+        # Performance Statistics
+        perf_table = Table(title="Performance Statistics", show_header=True)
+        perf_table.add_column("Metric", style="bold cyan")
+        perf_table.add_column("Value", style="green")
+        
+        perf_table.add_row("Total Requests", str(perf_stats["total_requests"]))
+        perf_table.add_row("Cache Hits", str(perf_stats["cache_hits"]))
+        perf_table.add_row("Cache Hit Rate", f"{perf_stats['cache_hit_rate']:.1%}")
+        perf_table.add_row("Avg Processing Time", f"{perf_stats['avg_processing_time']:.2f}s")
+        
+        console.print(perf_table)
+        console.print()
+        
+        # System Resource Usage
+        resource_usage = hardware_detector.monitor_resource_usage()
+        resource_table = Table(title="Current Resource Usage", show_header=True)
+        resource_table.add_column("Resource", style="bold cyan")
+        resource_table.add_column("Usage", style="green")
+        resource_table.add_column("Status", style="yellow")
+        
+        memory_status = "High" if resource_usage["memory_used_percent"] > 80 else "Normal"
+        cpu_status = "High" if resource_usage["cpu_usage_percent"] > 80 else "Normal"
+        
+        resource_table.add_row("Memory", f"{resource_usage['memory_used_percent']:.1f}%", memory_status)
+        resource_table.add_row("CPU", f"{resource_usage['cpu_usage_percent']:.1f}%", cpu_status)
+        resource_table.add_row("Available Memory", f"{resource_usage['memory_available_gb']:.1f}GB", "Available")
+        
+        console.print(resource_table)
+        
+        # AI availability check
+        is_available = await optimized_ai_client.is_available()
+        status_color = "green" if is_available else "red"
+        status_text = "Available" if is_available else "Unavailable" 
+        
+        console.print(f"\n[{status_color}]Local AI Status: {status_text}[/{status_color}]")
+        
+    except Exception as e:
+        console.print(f"[red]Error getting AI status: {e}[/red]")
+
+
+@app.command()
+def benchmark():
+    """
+    Benchmark local AI model performance.
+    
+    Tests the current model performance and provides optimization recommendations.
+    """
+    asyncio.run(_benchmark_model())
+
+
+async def _benchmark_model():
+    """Benchmark the current AI model."""
+    try:
+        console.print(Panel.fit(
+            "[bold blue]AI Model Benchmarking[/bold blue]\n"
+            "[cyan]Testing model performance on current hardware[/cyan]",
+            style="blue"
+        ))
+        
+        model_name = optimized_ai_client.model_name
+        
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console
+        ) as progress:
+            task = progress.add_task("Benchmarking model performance...", total=None)
+            
+            # Run benchmark
+            performance = await model_manager.benchmark_model(model_name)
+            
+            progress.update(task, completed=True)
+        
+        if performance:
+            # Display benchmark results
+            bench_table = Table(title="Benchmark Results", show_header=True)
+            bench_table.add_column("Metric", style="bold cyan")
+            bench_table.add_column("Value", style="green")
+            bench_table.add_column("Assessment", style="yellow")
+            
+            # Assess performance
+            speed_assessment = "Excellent" if performance.tokens_per_second > 10 else "Good" if performance.tokens_per_second > 5 else "Fair"
+            memory_assessment = "Efficient" if performance.memory_usage_mb < 2000 else "Moderate" if performance.memory_usage_mb < 4000 else "High"
+            
+            bench_table.add_row("Tokens per Second", f"{performance.tokens_per_second:.1f}", speed_assessment)
+            bench_table.add_row("Memory Usage", f"{performance.memory_usage_mb:.0f}MB", memory_assessment)
+            bench_table.add_row("Response Latency", f"{performance.first_token_latency_ms:.0f}ms", "Measured")
+            bench_table.add_row("Quality Score", f"{performance.quality_score:.1f}/10", "Estimated")
+            
+            console.print(bench_table)
+            
+            # Recommendations
+            recommendations = []
+            if performance.tokens_per_second < 5:
+                recommendations.append("Consider using a smaller quantized model for better speed")
+            if performance.memory_usage_mb > 4000:
+                recommendations.append("High memory usage - consider Q4_0 quantization")
+            if not recommendations:
+                recommendations.append("Performance is optimal for your hardware")
+            
+            console.print(Panel(
+                "\n".join(f"• {rec}" for rec in recommendations),
+                title="Performance Recommendations",
+                style="green"
+            ))
+        else:
+            console.print("[red]Benchmark failed - ensure local AI model is available[/red]")
+            
+    except Exception as e:
+        console.print(f"[red]Benchmark error: {e}[/red]")
+
+
+@app.command()
+def optimize_models():
+    """
+    Optimize local AI models for current hardware.
+    
+    Downloads optimal models and cleans up unused ones.
+    """
+    asyncio.run(_optimize_models())
+
+
+async def _optimize_models():
+    """Optimize model selection and cleanup."""
+    try:
+        console.print(Panel.fit(
+            "[bold blue]AI Model Optimization[/bold blue]\n"
+            "[cyan]Optimizing models for your hardware[/cyan]",
+            style="blue"
+        ))
+        
+        # Get optimal model recommendation
+        optimal_model = await model_manager.get_optimal_model()
+        current_model = optimized_ai_client.model_name
+        
+        console.print(f"Current model: [cyan]{current_model}[/cyan]")
+        console.print(f"Optimal model: [green]{optimal_model.name}[/green]")
+        
+        if optimal_model.name != current_model:
+            if Confirm.ask(f"Download optimal model {optimal_model.name}?"):
+                with Progress(
+                    SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    console=console
+                ) as progress:
+                    task = progress.add_task("Downloading optimal model...", total=None)
+                    
+                    success = await model_manager.ensure_model_available(optimal_model.name)
+                    
+                    progress.update(task, completed=True)
+                
+                if success:
+                    console.print(f"[green]✅ Model {optimal_model.name} downloaded successfully[/green]")
+                else:
+                    console.print(f"[red]❌ Failed to download model {optimal_model.name}[/red]")
+        
+        # Cleanup unused models
+        if Confirm.ask("Clean up unused models to free memory?"):
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                console=console
+            ) as progress:
+                task = progress.add_task("Cleaning up unused models...", total=None)
+                
+                removed_count = await model_manager.cleanup_unused_models()
+                
+                progress.update(task, completed=True)
+            
+            console.print(f"[green]✅ Removed {removed_count} unused models[/green]")
+        
+        # Show recommendations
+        recommendations = model_manager.get_model_recommendations()
+        if recommendations:
+            rec_table = Table(title="Model Recommendations", show_header=True)
+            rec_table.add_column("Model", style="bold cyan")
+            rec_table.add_column("Size", style="green")
+            rec_table.add_column("Performance", style="yellow")
+            rec_table.add_column("Description", style="dim")
+            
+            for rec in recommendations[:3]:
+                rec_table.add_row(
+                    rec.name,
+                    f"{rec.size_gb:.1f}GB",
+                    f"{rec.performance_score:.1f}/10",
+                    rec.description
+                )
+            
+            console.print(rec_table)
+            
+    except Exception as e:
+        console.print(f"[red]Model optimization error: {e}[/red]")
 
 
 if __name__ == "__main__":

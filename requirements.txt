@@ -8,11 +8,13 @@ proxmoxer>=2.0.1
 requests>=2.31.0
 urllib3>=2.0.0
 
-# Local AI Integration
+# Local AI Integration - Lightweight packages
 ollama>=0.2.0
-transformers>=4.35.0
-torch>=2.0.0
-llama-cpp-python>=0.2.0
+# Note: Removed heavy torch/transformers dependencies for memory efficiency
+# The system now uses Ollama API exclusively for local AI
+
+# System monitoring for hardware detection
+psutil>=5.9.0
 
 # Security & Encryption
 cryptography>=42.0.0
