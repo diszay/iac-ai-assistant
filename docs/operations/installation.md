@@ -9,9 +9,9 @@ This guide provides comprehensive installation procedures for the Proxmox AI Inf
 ### System Requirements
 
 #### Proxmox Host Requirements
-- **Proxmox VE**: Version 7.4 or later
-- **Hardware**: Minimum 32GB RAM, 1TB storage, 8 CPU cores
-- **Network**: Static IP address (192.168.1.50)
+- **Proxmox VE**: Version 7.4 or later recommended
+- **Hardware**: Minimum 16GB RAM, 500GB storage, 4 CPU cores (32GB+ RAM recommended for production)
+- **Network**: Static IP address configured
 - **Security**: SSH access configured with key-based authentication
 
 #### Client System Requirements
@@ -19,14 +19,14 @@ This guide provides comprehensive installation procedures for the Proxmox AI Inf
 - **Python**: Version 3.12 or later
 - **Memory**: Minimum 4GB RAM (8GB+ recommended for optimal AI performance)
 - **Storage**: Minimum 15GB available space (5GB for AI models, 10GB for tools and logs)
-- **Network**: SSH access to Proxmox host (port 2849)
+- **Network**: SSH access to your Proxmox host
 - **AI Engine**: Ollama for local AI model execution
 
 #### Network Requirements
-- **Internal Network**: 192.168.1.0/24 subnet
-- **Internet Access**: Required for package downloads and API access
-- **Firewall Rules**: SSH (2849), Proxmox Web (8006), API access
-- **DNS Resolution**: Proper hostname resolution for all systems
+- **Internet Access**: Required for initial downloads (Ollama, Python packages, AI models)
+- **Proxmox Access**: SSH and API access to your Proxmox server
+- **Firewall Rules**: SSH, Proxmox Web interface, and API access
+- **DNS Resolution**: Proper hostname resolution for your network
 
 ### Local AI Requirements
 
@@ -39,10 +39,9 @@ This guide provides comprehensive installation procedures for the Proxmox AI Inf
 ### Security Prerequisites
 
 #### Credential Management
-- Secure storage for root password: `[PROXMOX_ROOT_PASSWORD]`
 - SSH key pair generation and secure storage
-- API token generation and secure management
-- Backup of all security credentials
+- Proxmox API token generation and secure management
+- Secure backup of all authentication credentials
 - Local AI model security and isolation
 
 #### Network Security
