@@ -2,48 +2,86 @@
 
 ## System Architecture
 
-The Proxmox AI Infrastructure Assistant is designed as a secure, enterprise-grade automation platform that bridges AI-powered infrastructure management with robust security controls and comprehensive operational procedures.
+The Proxmox AI Infrastructure Assistant is designed as a secure, privacy-first automation platform that leverages local AI processing to provide intelligent infrastructure management with zero external dependencies. The architecture prioritizes data sovereignty, hardware optimization, and enterprise-grade security.
 
 ## High-Level Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    External Access Layer                        │
+│                    Client Layer (Local AI)                     │
 ├─────────────────────────────────────────────────────────────────┤
-│  MacBook/Client → SSH (Port 2849) → Router/Firewall            │
+│  User Workstation (Any OS)                                     │
+│  ├── Proxmox AI Assistant CLI                                  │
+│  ├── Local Ollama AI Engine                                    │
+│  ├── Hardware-Optimized AI Models                              │
+│  ├── Encrypted Credential Storage                              │
+│  └── 100% Local Processing (No Cloud)                          │
 └─────────────────────────────────────────────────────────────────┘
-                                ↓
+                                ↓ SSH/API (Encrypted)
 ┌─────────────────────────────────────────────────────────────────┐
 │                 Proxmox Hypervisor Layer                       │
 ├─────────────────────────────────────────────────────────────────┤
-│  Proxmox VE Host (192.168.1.50)                               │
-│  ├── Root Access (Secured)                                     │
-│  ├── Web Interface (Port 8006)                                 │
-│  ├── API Endpoint (RESTful)                                    │
-│  └── VM Network Bridge (vmbr0)                                 │
+│  Proxmox VE Host (User-Configurable)                          │
+│  ├── SSH Access (Key-Based Auth)                              │
+│  ├── Web Interface (TLS)                                       │
+│  ├── REST API (Authenticated)                                  │
+│  └── Network Configuration                                     │
 └─────────────────────────────────────────────────────────────────┘
-                                ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                 AI Assistant VM Layer                          │
-├─────────────────────────────────────────────────────────────────┤
-│  AI Assistant VM (192.168.1.101)                              │
-│  ├── LUKS Disk Encryption                                      │
-│  ├── Python CLI Application                                    │
-│  ├── Proxmox API Client                                        │
-│  ├── Claude AI Integration                                     │
-│  └── Security Hardening                                        │
-└─────────────────────────────────────────────────────────────────┘
-                                ↓
+                                ↓ VM Management
 ┌─────────────────────────────────────────────────────────────────┐
 │                 Managed Infrastructure Layer                    │
 ├─────────────────────────────────────────────────────────────────┤
-│  Target VMs (192.168.1.102+)                                  │
-│  ├── Individual Security Hardening                             │
-│  ├── Automated Configuration Management                        │
-│  ├── Compliance Monitoring                                     │
-│  └── Centralized Logging                                       │
+│  Target VMs (Generated & Configured)                          │
+│  ├── Terraform-Generated Infrastructure                        │
+│  ├── Ansible-Automated Configuration                           │
+│  ├── Security Hardening                                        │
+│  ├── Monitoring & Compliance                                   │
+│  └── Skill-Level Adapted Complexity                            │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+## Local AI Architecture
+
+### Privacy-First AI Processing
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Local AI Processing Stack                   │
+├─────────────────────────────────────────────────────────────────┤
+│  Hardware Layer                                                │
+│  ├── CPU: Multi-core processing (2-32+ cores)                  │
+│  ├── Memory: 4-64GB RAM (hardware-optimized)                   │
+│  ├── Storage: 10GB+ for models and cache                       │
+│  └── GPU: Optional NVIDIA/AMD acceleration                     │
+├─────────────────────────────────────────────────────────────────┤
+│  Ollama AI Engine                                              │
+│  ├── Model Management: Download, update, optimize              │
+│  ├── Hardware Detection: Automatic optimization                │
+│  ├── Memory Management: Efficient model loading                │
+│  └── API Server: HTTP REST interface (localhost only)          │
+├─────────────────────────────────────────────────────────────────┤
+│  AI Models (Quantized LLMs)                                    │
+│  ├── Llama 3.2 3B (Basic): 2GB, 4-6GB RAM systems            │
+│  ├── Llama 3.1 8B Q4: 4.5GB, 6-12GB RAM systems              │
+│  ├── Llama 3.1 8B Q8: 8GB, 12-24GB RAM systems               │
+│  └── Llama 3.1 70B Q4: 40GB, 24GB+ RAM systems               │
+├─────────────────────────────────────────────────────────────────┤
+│  AI Client Integration                                          │
+│  ├── Hardware-Optimized Client                                 │
+│  ├── Skill-Level Adaptation                                    │
+│  ├── Context Management                                        │
+│  ├── Response Caching                                          │
+│  └── Performance Monitoring                                    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Key Benefits of Local AI
+
+- **Complete Privacy**: All data processing happens locally
+- **Zero External Dependencies**: Works completely offline
+- **Hardware Optimization**: Automatic model selection based on available resources
+- **Skill-Level Adaptation**: AI responses adapted to user expertise
+- **Performance Monitoring**: Real-time optimization and resource tracking
 
 ## Component Architecture
 
