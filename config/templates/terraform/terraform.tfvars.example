@@ -7,7 +7,7 @@
 # =============================================================================
 
 # Proxmox API endpoint
-proxmox_api_url = "https://192.168.1.50:8006/api2/json"
+proxmox_api_url = "https://YOUR_PROXMOX_HOST:8006/api2/json"
 
 # API Token credentials (create these in Proxmox WebUI under Datacenter -> Permissions -> API Tokens)
 proxmox_api_token_id     = "root@pam!terraform"
@@ -95,13 +95,13 @@ mac_addresses = null
 
 # Static IP configuration (optional, leave null for DHCP)
 ip_config = [
-  "ip=192.168.1.100/24,gw=192.168.1.1",
-  "ip=192.168.1.101/24,gw=192.168.1.1"
+  "ip=YOUR_VM_IP_START/24,gw=YOUR_VM_IP",
+  "ip=YOUR_VM_IP/24,gw=YOUR_VM_IP"
 ]
 
 # DNS configuration
 search_domain = "homelab.local"
-nameservers   = "192.168.1.1 8.8.8.8"
+nameservers   = "YOUR_VM_IP 8.8.8.8"
 
 # =============================================================================
 # SSH AND AUTHENTICATION
@@ -218,9 +218,9 @@ generate_ansible_inventory = true
 # default_memory = 8192
 # default_disk_size = "60G"
 # ip_config = [
-#   "ip=192.168.1.100/24,gw=192.168.1.1",
-#   "ip=192.168.1.101/24,gw=192.168.1.1", 
-#   "ip=192.168.1.102/24,gw=192.168.1.1"
+#   "ip=YOUR_VM_IP_START/24,gw=YOUR_VM_IP",
+#   "ip=YOUR_VM_IP/24,gw=YOUR_VM_IP", 
+#   "ip=YOUR_VM_IP_2/24,gw=YOUR_VM_IP"
 # ]
 
 # EXAMPLE 3: High-Performance Database Server

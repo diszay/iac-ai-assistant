@@ -8,7 +8,7 @@ This guide will help you start the Proxmox AI Assistant and begin automating you
 
 Before starting, ensure you have:
 
-- [ ] **Proxmox VE Server** running and accessible (IP: 192.168.1.50 or your IP)
+- [ ] **Proxmox VE Server** running and accessible (IP: YOUR_PROXMOX_HOST or your IP)
 - [ ] **Python 3.12+** installed on your system
 - [ ] **Ollama** installed for local AI models
 - [ ] **4GB+ RAM** available for AI model operation
@@ -87,7 +87,7 @@ proxmox-ai --version
 proxmox-ai config init
 
 # Configure Proxmox connection
-proxmox-ai config set proxmox.host "192.168.1.50"
+proxmox-ai config set proxmox.host "YOUR_PROXMOX_HOST"
 proxmox-ai config set proxmox.user "root@pam"
 proxmox-ai config set proxmox.port "8006"
 
@@ -222,7 +222,7 @@ ollama pull llama3.1:8b-instruct-q4_0
 ### Issue: "Cannot connect to Proxmox"
 ```bash
 # Test connection manually
-curl -k https://192.168.1.50:8006/api2/json/version
+curl -k https://YOUR_PROXMOX_HOST:8006/api2/json/version
 
 # Check configuration
 proxmox-ai config get proxmox.host

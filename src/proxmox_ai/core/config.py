@@ -121,7 +121,7 @@ class Settings(BaseSettings):
     
     # Component configurations
     proxmox: ProxmoxConfig = Field(
-        default_factory=lambda: ProxmoxConfig(host="192.168.1.50"),
+        default_factory=lambda: ProxmoxConfig(host="YOUR_PROXMOX_HOST"),
         description="Proxmox configuration"
     )
     local_ai: LocalAIConfig = Field(

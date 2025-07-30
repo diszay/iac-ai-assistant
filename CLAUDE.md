@@ -23,7 +23,7 @@
 ## 🏗️ Architecture & Technology Stack
 
 ### **Core Technologies:**
-- **Hypervisor**: Proxmox VE (Enterprise virtualization platform) - Host: 192.168.1.50
+- **Hypervisor**: Proxmox VE (Enterprise virtualization platform) - Host: YOUR_PROXMOX_HOST
 - **Programming Language**: Python 3.12+ with modern async capabilities
 - **CLI Framework**: Typer (modern, type-safe CLI framework)
 - **UI/UX**: Rich (beautiful terminal interfaces)
@@ -34,15 +34,15 @@
 
 ### **Security Architecture:**
 ```
-External Access (MacBook) 
-    ↓ SSH Key Authentication (Port 2849)
+External Access (Client Device) 
+    ↓ SSH Key Authentication (Custom Port)
 Router/Firewall 
     ↓ Port Forwarding (Encrypted)
-Proxmox Host (192.168.1.50)
+Proxmox Host (YOUR_PROXMOX_HOST)
     ↓ VM Network Bridge (vmbr0) + Firewall Rules
-AI Assistant VM (192.168.1.101) - LUKS Encrypted
+AI Assistant VM (YOUR_VM_IP) - LUKS Encrypted
     ↓ Secure Internal Communication (TLS + SSH Keys)
-Target VMs (192.168.1.102+) - Individual Security Hardening
+Target VMs (YOUR_VM_RANGE) - Individual Security Hardening
 ```
 
 ## 🎭 Five Development Agents (Role-Based with Proxmox Specialization)

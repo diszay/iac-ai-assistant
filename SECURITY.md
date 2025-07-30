@@ -74,7 +74,7 @@ We provide security updates for the following versions:
    ```bash
    # Configure firewall rules
    proxmox-ai config set network.firewall_enabled true
-   proxmox-ai config set network.allowed_sources "192.168.1.0/24"
+   proxmox-ai config set network.allowed_sources "YOUR_VM_IP/24"
    ```
 
 ### Operational Security
