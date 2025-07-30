@@ -35,6 +35,27 @@ config/secrets/*
 .env
 .env.local
 .env.production
+.env.staging
+.env.test
+
+# Tokens and API keys
+*.token
+*_token
+*_key
+*_secret
+secrets.yaml
+secrets.yml
+credentials.json
+auth.json
+
+# SSH keys
+id_rsa*
+id_ed25519*
+*.pub
+
+# Git credentials
+.git-credentials
+.netrc
 
 # IDE
 .vscode/

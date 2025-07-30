@@ -443,7 +443,7 @@ def _test_credential_system(settings: Settings):
         test_creds = credential_manager.store_credentials(
             service_name=test_service,
             username="test_user",
-            password="test_password"
+            password="example_password_here"
         )
         
         retrieved_creds = credential_manager.get_credentials(test_service)

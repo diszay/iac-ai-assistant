@@ -39,7 +39,7 @@ echo
 
 echo "8. Testing with environment variables:"
 echo "Setting PROXMOX_ROOT_PASSWORD environment variable..."
-PROXMOX_ROOT_PASSWORD="test_password" python -m src.proxmox_ai.cli.main status
+PROXMOX_ROOT_PASSWORD="${PROXMOX_ROOT_PASSWORD:-}" python -m src.proxmox_ai.cli.main status
 echo
 
 echo "=== CLI Test Complete ==="

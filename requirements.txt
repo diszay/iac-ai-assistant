@@ -8,9 +8,11 @@ proxmoxer>=2.0.1
 requests>=2.31.0
 urllib3>=2.0.0
 
-# AI Integration
-anthropic>=0.25.0
-openai>=1.30.0  # Backup AI provider
+# Local AI Integration
+ollama>=0.2.0
+transformers>=4.35.0
+torch>=2.0.0
+llama-cpp-python>=0.2.0
 
 # Security & Encryption
 cryptography>=42.0.0

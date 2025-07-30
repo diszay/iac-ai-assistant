@@ -36,14 +36,15 @@ class ProxmoxConfig(BaseModel):
         return v.strip()
 
 
-class AnthropicConfig(BaseModel):
-    """Anthropic Claude API configuration."""
+class LocalAIConfig(BaseModel):
+    """Local AI model configuration."""
     
-    api_key: Optional[str] = Field(None, description="Anthropic API key")
-    model: str = Field("claude-3-5-sonnet-20241022", description="Claude model to use")
-    max_tokens: int = Field(4096, description="Maximum tokens per request", ge=1)
+    model_name: str = Field("llama3.2", description="Local AI model name")
+    ollama_host: str = Field("http://localhost:11434", description="Ollama host URL")
+    max_tokens: int = Field(2048, description="Maximum tokens per request", ge=1)
     temperature: float = Field(0.1, description="Model temperature", ge=0.0, le=2.0)
-    timeout: int = Field(60, description="API request timeout in seconds", ge=1)
+    timeout: int = Field(60, description="AI request timeout in seconds", ge=1)
+    skill_level: str = Field("intermediate", description="Default skill level (beginner/intermediate/expert)")
 
 
 class SecurityConfig(BaseModel):
@@ -122,9 +123,9 @@ class Settings(BaseSettings):
         default_factory=lambda: ProxmoxConfig(host="192.168.1.50"),
         description="Proxmox configuration"
     )
-    anthropic: AnthropicConfig = Field(
-        default_factory=AnthropicConfig,
-        description="Anthropic API configuration"
+    local_ai: LocalAIConfig = Field(
+        default_factory=LocalAIConfig,
+        description="Local AI model configuration"
     )
     security: SecurityConfig = Field(
         default_factory=SecurityConfig,
