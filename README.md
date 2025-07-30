@@ -31,7 +31,16 @@ A powerful, security-first Infrastructure as Code (IaC) automation tool that lev
 - **VM Management**: Streamlined Proxmox virtual machine operations
 - **Template Management**: Reusable infrastructure templates
 
-## Quick Start
+## 🚀 Quick Start
+
+**The fastest way to get started:**
+
+```bash
+# One-command setup and start
+git clone https://github.com/your-username/proxmox-ai-assistant.git
+cd proxmox-ai-assistant
+./scripts/start-assistant.sh chat
+```
 
 ### Prerequisites
 
@@ -47,7 +56,26 @@ A powerful, security-first Infrastructure as Code (IaC) automation tool that lev
 - **API Access**: Proxmox API token configured
 - **SSH Access**: Key-based authentication configured
 
-### Installation
+### 🎯 Instant Startup Options
+
+```bash
+# Interactive startup with auto-setup
+./scripts/start-assistant.sh
+
+# Start directly in chat mode
+./scripts/start-assistant.sh chat
+
+# Setup configuration
+./scripts/start-assistant.sh config
+
+# Check system status
+./scripts/start-assistant.sh status
+
+# Run diagnostics
+./scripts/start-assistant.sh doctor
+```
+
+### Manual Installation
 
 #### 1. Install Ollama (Local AI Engine)
 

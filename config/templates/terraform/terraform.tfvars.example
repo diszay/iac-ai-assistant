@@ -1,0 +1,281 @@
+# Terraform Variables Example Configuration
+# Copy this file to terraform.tfvars and customize for your environment
+# IMPORTANT: Never commit terraform.tfvars with real credentials to version control
+
+# =============================================================================
+# PROXMOX CONNECTION CONFIGURATION
+# =============================================================================
+
+# Proxmox API endpoint
+proxmox_api_url = "https://192.168.1.50:8006/api2/json"
+
+# API Token credentials (create these in Proxmox WebUI under Datacenter -> Permissions -> API Tokens)
+proxmox_api_token_id     = "root@pam!terraform"
+proxmox_api_token_secret = "your-api-token-secret-here"
+
+# Target Proxmox node name
+proxmox_node = "proxmox-01"
+
+# Storage backend for VM disks
+proxmox_storage = "local-lvm"
+
+# Security settings
+proxmox_tls_insecure = false  # Set to true only for testing with self-signed certificates
+
+# =============================================================================
+# PROJECT IDENTIFICATION
+# =============================================================================
+
+environment      = "dev"
+application_name = "webapp"
+project_name     = "my-infrastructure-project"
+instance_name    = "server"
+description      = "Development environment for web application"
+security_level   = "medium"
+
+# =============================================================================
+# VM RESOURCE SPECIFICATIONS
+# =============================================================================
+
+# Number of VMs to create
+vm_count = 2
+
+# VM template (must exist in Proxmox)
+template_name = "ubuntu-22.04-cloud-init"
+full_clone    = true
+
+# CPU configuration
+default_cpu_cores = 2
+cpu_sockets      = 1
+cpu_type         = "host"
+
+# Memory configuration (in MB)
+default_memory = 4096
+memory_balloon = 0
+
+# Primary disk configuration
+default_disk_size = "40G"
+disk_format      = "qcow2"
+disk_cache       = "none"
+disk_backup      = true
+
+# Additional data disks (optional)
+additional_disks = [
+  {
+    slot     = 1
+    type     = "scsi"
+    storage  = "local-lvm"
+    size     = "100G"
+    format   = "qcow2"
+    cache    = "none"
+    backup   = true
+    iothread = false
+    discard  = "ignore"
+    ssd      = false
+  }
+]
+
+# =============================================================================
+# NETWORK CONFIGURATION
+# =============================================================================
+
+# Primary network settings
+network_bridge = "vmbr0"
+vlan_tag       = null  # Set to VLAN ID if needed, e.g., 100
+
+# Additional network interfaces (optional)
+additional_networks = []
+
+# Static MAC addresses (optional, leave null for auto-generation)
+mac_addresses = null
+
+# =============================================================================
+# IP ADDRESS CONFIGURATION
+# =============================================================================
+
+# Static IP configuration (optional, leave null for DHCP)
+ip_config = [
+  "ip=192.168.1.100/24,gw=192.168.1.1",
+  "ip=192.168.1.101/24,gw=192.168.1.1"
+]
+
+# DNS configuration
+search_domain = "homelab.local"
+nameservers   = "192.168.1.1 8.8.8.8"
+
+# =============================================================================
+# SSH AND AUTHENTICATION
+# =============================================================================
+
+# User account configuration
+default_username = "ubuntu"
+
+# SSH key management
+generate_ssh_key = true  # Set to false if providing your own keys
+
+# Provide your own SSH public key (if generate_ssh_key = false)
+ssh_public_keys = ""
+# Example: ssh_public_keys = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... user@hostname"
+
+# SSH connection settings
+ssh_port = 22
+
+# Password management
+generate_vm_password = true  # Generate random password for user account
+ci_password         = ""    # Leave empty to use generated password
+
+# =============================================================================
+# SYSTEM CONFIGURATION
+# =============================================================================
+
+# Localization
+timezone = "America/New_York"
+locale   = "en_US.UTF-8"
+
+# Default software packages
+default_packages = [
+  "curl",
+  "wget",
+  "vim",
+  "htop",
+  "unzip",
+  "git",
+  "software-properties-common",
+  "apt-transport-https",
+  "ca-certificates",
+  "gnupg",
+  "lsb-release",
+  "net-tools",
+  "ufw",
+  "fail2ban"
+]
+
+# =============================================================================
+# SECURITY CONFIGURATION
+# =============================================================================
+
+# Security hardening options
+enable_automatic_security_updates = true
+enable_fail2ban                  = true
+enable_ufw_firewall              = true
+enable_initial_hardening         = true
+
+# Additional software
+enable_docker     = false  # Set to true to install Docker
+enable_monitoring = false  # Set to true to install monitoring agents
+
+# =============================================================================
+# VM BEHAVIOR
+# =============================================================================
+
+# VM lifecycle settings
+vm_autostart     = true
+initial_vm_state = "running"
+enable_qemu_agent = true
+
+# Startup order (optional)
+vm_startup_order = "order=1,up=30"
+
+# =============================================================================
+# ADVANCED CONFIGURATION
+# =============================================================================
+
+# Hardware passthrough (optional)
+usb_devices = []
+serial_devices = []
+
+# Custom provisioning scripts (optional)
+provisioning_scripts = [
+  {
+    commands = [
+      "sudo systemctl enable ssh",
+      "sudo systemctl start ssh",
+      "echo 'Custom provisioning completed' | sudo tee /var/log/terraform-provisioning.log"
+    ]
+  }
+]
+
+# File uploads (optional)
+file_uploads = []
+
+# Automation integration
+generate_ansible_inventory = true
+
+# =============================================================================
+# EXAMPLE CONFIGURATIONS FOR DIFFERENT USE CASES
+# =============================================================================
+
+# EXAMPLE 1: Single Development VM
+# vm_count = 1
+# default_cpu_cores = 2
+# default_memory = 4096
+# default_disk_size = "40G"
+# ip_config = ["ip=dhcp"]
+
+# EXAMPLE 2: Web Server Cluster (3 VMs)
+# vm_count = 3
+# default_cpu_cores = 4
+# default_memory = 8192
+# default_disk_size = "60G"
+# ip_config = [
+#   "ip=192.168.1.100/24,gw=192.168.1.1",
+#   "ip=192.168.1.101/24,gw=192.168.1.1", 
+#   "ip=192.168.1.102/24,gw=192.168.1.1"
+# ]
+
+# EXAMPLE 3: High-Performance Database Server
+# vm_count = 1
+# default_cpu_cores = 8
+# default_memory = 16384
+# default_disk_size = "100G"
+# additional_disks = [
+#   {
+#     slot = 1
+#     type = "scsi"
+#     storage = "local-lvm"
+#     size = "500G"
+#     format = "raw"
+#     cache = "none"
+#     backup = true
+#     iothread = true
+#     discard = "on"
+#     ssd = true
+#   }
+# ]
+
+# EXAMPLE 4: Kubernetes Node Pool
+# vm_count = 3
+# default_cpu_cores = 4
+# default_memory = 8192
+# default_disk_size = "80G"
+# enable_docker = true
+# additional_packages = ["kubelet", "kubeadm", "kubectl"]
+
+# =============================================================================
+# SECURITY NOTES
+# =============================================================================
+
+# 1. API Token Security:
+#    - Create dedicated API tokens in Proxmox for Terraform
+#    - Use least privilege principle - only grant necessary permissions
+#    - Rotate API tokens regularly
+
+# 2. SSH Key Security:
+#    - Use Ed25519 keys for better security
+#    - Store private keys securely and never commit to version control
+#    - Use SSH agent forwarding for chained connections
+
+# 3. Network Security:
+#    - Use VLANs to segment different environments
+#    - Configure firewall rules appropriately
+#    - Consider using VPN for remote access
+
+# 4. VM Security:
+#    - Enable automatic security updates
+#    - Use strong passwords or key-based authentication only
+#    - Regular security scanning and updates
+
+# 5. Backup Strategy:
+#    - Enable backups for important VMs
+#    - Test restore procedures regularly
+#    - Store backups in multiple locations

@@ -18,6 +18,7 @@ import requests
 import structlog
 
 from ..core.hardware_detector import hardware_detector, ModelRecommendation
+from .natural_language_processor import nlp_processor, ParsedIntent
 
 logger = structlog.get_logger(__name__)
 
@@ -290,6 +291,108 @@ Keep explanation clear and concise."""
         
         return requirement
     
+    async def intelligent_conversation(self, user_input: str, context: Optional[Dict] = None) -> AIResponse:
+        """
+        Enhanced conversation with natural language understanding.
+        
+        Args:
+            user_input: Raw user input in natural language
+            context: Optional conversation context
+            
+        Returns:
+            AIResponse with intelligent recommendations
+        """
+        # Parse user intent using NLP
+        parsed_intent = nlp_processor.parse_user_input(user_input, context)
+        
+        # Generate enhanced prompt based on intent
+        enhanced_prompt = nlp_processor.generate_prompt_enhancement(parsed_intent)
+        
+        # Combine with original user input
+        full_prompt = f"{enhanced_prompt}\n\nORIGINAL USER REQUEST:\n{user_input}\n\nPlease provide a comprehensive response that addresses the user's specific intent and requirements."
+        
+        logger.info(
+            "Processing intelligent conversation",
+            intent=parsed_intent.intent_type.value,
+            confidence=parsed_intent.confidence,
+            skill_level=parsed_intent.skill_level
+        )
+        
+        # Make request with appropriate skill level
+        response = await self._make_optimized_request(full_prompt, parsed_intent.skill_level)
+        
+        # Enhance response with intent-specific information
+        if response.success and parsed_intent.intent_type.value in ["generate_terraform", "generate_ansible", "deploy_infrastructure"]:
+            response.content = self._enhance_infrastructure_response(response.content, parsed_intent)
+        
+        return response
+    
+    def _enhance_infrastructure_response(self, content: str, parsed_intent: ParsedIntent) -> str:
+        """Enhance infrastructure responses with practical next steps."""
+        enhancement = f"""
+
+## 🎯 Intent Analysis
+**Detected Intent**: {parsed_intent.intent_type.value}
+**Confidence**: {parsed_intent.confidence:.1%}
+**Infrastructure Type**: {parsed_intent.infrastructure_type.value if parsed_intent.infrastructure_type else 'General'}
+
+## 📋 Extracted Parameters
+"""
+        
+        if parsed_intent.parameters:
+            for key, value in parsed_intent.parameters.items():
+                enhancement += f"- **{key.replace('_', ' ').title()}**: {value}\n"
+        else:
+            enhancement += "- No specific parameters detected - using defaults\n"
+        
+        enhancement += f"""
+## 🚀 Quick Start Commands
+Based on your request, here are the immediate next steps:
+
+```bash
+# Navigate to your project directory
+cd /path/to/your/project
+
+# If this is Terraform code:
+terraform init
+terraform plan
+terraform apply
+
+# If this is Ansible code:
+ansible-playbook -i inventory playbook.yml
+
+# For Proxmox AI Assistant:
+proxmox-ai config validate
+proxmox-ai vm deploy --from-file generated-config
+```
+
+## 🔒 Security Recommendations
+- Review all generated configurations before deployment
+- Ensure SSH keys are properly configured
+- Validate firewall rules and network security
+- Enable backup strategies for production deployments
+
+## 💡 Optimization Tips for Your Skill Level ({parsed_intent.skill_level})
+"""
+        
+        if parsed_intent.skill_level == "beginner":
+            enhancement += """- Start with small, simple deployments to learn
+- Use the Proxmox web interface to verify configurations
+- Test in development environment first
+- Ask for explanations of any unclear concepts"""
+        elif parsed_intent.skill_level == "intermediate":
+            enhancement += """- Consider automation and configuration management
+- Implement monitoring and alerting
+- Use version control for all infrastructure code
+- Plan for scalability and disaster recovery"""
+        else:  # expert
+            enhancement += """- Implement advanced security hardening
+- Consider multi-region deployments
+- Integrate with CI/CD pipelines
+- Implement infrastructure testing and compliance scanning"""
+        
+        return content + enhancement
+
     async def _make_optimized_request(self, prompt: str, skill_level: str) -> AIResponse:
         """Make optimized request to local AI model with caching and monitoring."""
         start_time = time.time()
