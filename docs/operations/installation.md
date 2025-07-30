@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide provides comprehensive installation procedures for the Proxmox AI Infrastructure Assistant with a security-first approach. All procedures follow enterprise security standards and include verification steps.
+This guide provides comprehensive installation procedures for the Proxmox AI Infrastructure Assistant with local AI integration and a security-first approach. The system uses Ollama for local AI model execution, ensuring complete privacy and offline operation. All procedures follow enterprise security standards and include verification steps.
 
 ## Prerequisites
 
@@ -17,14 +17,24 @@ This guide provides comprehensive installation procedures for the Proxmox AI Inf
 #### Client System Requirements
 - **Operating System**: macOS, Linux, or Windows with SSH client
 - **Python**: Version 3.12 or later
+- **Memory**: Minimum 4GB RAM (8GB+ recommended for optimal AI performance)
+- **Storage**: Minimum 15GB available space (5GB for AI models, 10GB for tools and logs)
 - **Network**: SSH access to Proxmox host (port 2849)
-- **Storage**: Minimum 10GB available space for tools and logs
+- **AI Engine**: Ollama for local AI model execution
 
 #### Network Requirements
 - **Internal Network**: 192.168.1.0/24 subnet
 - **Internet Access**: Required for package downloads and API access
 - **Firewall Rules**: SSH (2849), Proxmox Web (8006), API access
 - **DNS Resolution**: Proper hostname resolution for all systems
+
+### Local AI Requirements
+
+#### Ollama Installation
+- **Ollama Engine**: Latest version for local AI model execution
+- **AI Models**: Hardware-optimized quantized models (1-8GB)
+- **Performance**: Automatic hardware detection and optimization
+- **Privacy**: Complete offline operation - no external AI services
 
 ### Security Prerequisites
 
@@ -33,6 +43,7 @@ This guide provides comprehensive installation procedures for the Proxmox AI Inf
 - SSH key pair generation and secure storage
 - API token generation and secure management
 - Backup of all security credentials
+- Local AI model security and isolation
 
 #### Network Security
 - Firewall configuration and port restrictions
@@ -40,7 +51,136 @@ This guide provides comprehensive installation procedures for the Proxmox AI Inf
 - TLS certificate generation and management
 - Network segmentation and VLAN configuration
 
-## Pre-Installation Security Setup
+## Pre-Installation Setup
+
+### 1. Ollama Installation and Configuration
+
+#### Install Ollama Engine
+```bash
+# Linux/macOS Installation
+curl -fsSL https://ollama.ai/install.sh | sh
+
+# Verify installation
+ollama --version
+
+# Start Ollama service
+ollama serve &
+
+# Check service status
+curl http://localhost:11434/api/tags
+```
+
+#### Hardware Detection and Model Selection
+```bash
+# Create hardware detection script
+cat << 'EOF' > scripts/detect_hardware.sh
+#!/bin/bash
+# Hardware detection for optimal AI model selection
+
+echo "=== Hardware Detection ==="
+
+# Get memory information
+MEM_GB=$(free -g | awk '/^Mem:/{print $2}')
+echo "Available Memory: ${MEM_GB}GB"
+
+# Get CPU information
+CPU_CORES=$(nproc)
+echo "CPU Cores: $CPU_CORES"
+
+# Check for GPU
+if command -v nvidia-smi &> /dev/null; then
+    GPU_INFO=$(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader,nounits)
+    echo "GPU: $GPU_INFO"
+else
+    echo "GPU: Not available"
+fi
+
+# Recommend model based on available memory
+echo "\n=== Recommended AI Models ==="
+if [ "$MEM_GB" -lt 6 ]; then
+    echo "Recommended: llama3.2:3b-instruct-q4_0 (Basic quality, ~2GB)"  
+    RECOMMENDED_MODEL="llama3.2:3b-instruct-q4_0"
+elif [ "$MEM_GB" -lt 12 ]; then
+    echo "Recommended: llama3.1:8b-instruct-q4_0 (Good quality, ~4.5GB)"
+    RECOMMENDED_MODEL="llama3.1:8b-instruct-q4_0"
+elif [ "$MEM_GB" -lt 24 ]; then
+    echo "Recommended: llama3.1:8b-instruct-q8_0 (High quality, ~8GB)"
+    RECOMMENDED_MODEL="llama3.1:8b-instruct-q8_0"
+else
+    echo "Recommended: llama3.1:70b-instruct-q4_0 (Excellent quality, ~40GB)"
+    RECOMMENDED_MODEL="llama3.1:70b-instruct-q4_0"
+fi
+
+echo "\nTo install recommended model: ollama pull $RECOMMENDED_MODEL"
+EOF
+
+chmod +x scripts/detect_hardware.sh
+./scripts/detect_hardware.sh
+```
+
+#### Install Recommended AI Model
+```bash
+# Pull the model recommended by hardware detection
+# For systems with 4-6GB RAM:
+ollama pull llama3.2:3b-instruct-q4_0
+
+# For systems with 6-12GB RAM:
+ollama pull llama3.1:8b-instruct-q4_0
+
+# For systems with 12-24GB RAM:
+ollama pull llama3.1:8b-instruct-q8_0
+
+# For systems with 24GB+ RAM:
+ollama pull llama3.1:70b-instruct-q4_0
+
+# Verify model installation
+ollama list
+
+# Test model functionality
+ollama run llama3.2:3b-instruct-q4_0 "Hello, can you help with infrastructure automation?"
+```
+
+#### Configure Ollama for Production
+```bash
+# Create Ollama systemd service (Linux)
+sudo cat << 'EOF' > /etc/systemd/system/ollama.service
+[Unit]
+Description=Ollama Local AI Service
+After=network.target
+
+[Service]
+Type=simple
+User=ollama
+Group=ollama
+ExecStart=/usr/local/bin/ollama serve
+Environment="OLLAMA_HOST=127.0.0.1:11434"
+Environment="OLLAMA_MODELS=/var/lib/ollama/models"
+Restart=always
+RestartSec=3
+KillMode=mixed
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Create ollama user
+sudo useradd -r -s /bin/false -d /var/lib/ollama -m ollama
+
+# Set permissions
+sudo mkdir -p /var/lib/ollama/models
+sudo chown -R ollama:ollama /var/lib/ollama
+
+# Enable and start service
+sudo systemctl daemon-reload
+sudo systemctl enable ollama
+sudo systemctl start ollama
+
+# Verify service status
+sudo systemctl status ollama
+curl http://localhost:11434/api/tags
+```
+
+## Security Setup
 
 ### 1. SSH Key Configuration
 
@@ -178,9 +318,13 @@ source venv/bin/activate
 # Upgrade pip and install build tools
 pip install --upgrade pip setuptools wheel
 
-# Install core dependencies
-pip install typer rich proxmoxer requests python-dotenv cryptography
-pip install ansible terraform-python pytest pytest-security
+# Install from pyproject.toml (includes all dependencies)
+pip install -e .
+
+# Alternatively, install core dependencies manually:
+# pip install typer rich proxmoxer requests python-dotenv cryptography
+# pip install structlog aiohttp httpx jinja2 pydantic pydantic-settings
+# pip install pytest pytest-asyncio pytest-cov
 
 # Save dependency list
 pip freeze > requirements.txt
@@ -210,7 +354,14 @@ PROXMOX_SSH_KEY_PATH=/home/$USER/.ssh/proxmox_ai_key
 # API Authentication
 PROXMOX_API_USER=root@pam
 PROXMOX_API_TOKEN=YOUR_PROXMOX_API_TOKEN_HERE
-CLAUDE_API_KEY=YOUR_CLAUDE_API_KEY_HERE
+
+# Local AI Configuration
+OLLAMA_HOST=http://localhost:11434
+AI_MODEL=llama3.2:3b-instruct-q4_0
+AI_SKILL_LEVEL=intermediate
+AI_CACHE_ENABLED=true
+AI_USE_GPU=false
+AI_MAX_MEMORY_GB=4
 
 # Security Configuration
 TLS_VERIFY=true
@@ -255,29 +406,96 @@ ssh proxmox-ai "echo 'SSH configuration successful'"
 # Clone or create the application structure
 cd ~/projects/iac-ai-assistant
 
-# Create main CLI application file
-cat << 'EOF' > src/cli/main.py
+# Install the application using pyproject.toml
+cat << 'EOF' > setup_check.py
 #!/usr/bin/env python3
 """
-Proxmox AI Infrastructure Assistant - Main CLI Application
-Security-first infrastructure automation with AI assistance
+Setup verification script for Proxmox AI Infrastructure Assistant
 """
 
-import typer
-from rich.console import Console
-from rich.panel import Panel
-import os
+import sys
+import subprocess
+import importlib
 from pathlib import Path
 
-# Initialize Rich console
-console = Console()
+def check_python_version():
+    """Check Python version requirement"""
+    if sys.version_info < (3, 12):
+        print("❌ Python 3.12+ required")
+        return False
+    print(f"✅ Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
+    return True
 
-# Initialize Typer app
-app = typer.Typer(
-    name="proxmox-ai",
-    help="Proxmox AI Infrastructure Assistant - Secure VM Management",
-    no_args_is_help=True
-)
+def check_ollama():
+    """Check Ollama installation"""
+    try:
+        result = subprocess.run(['ollama', '--version'], capture_output=True, text=True)
+        if result.returncode == 0:
+            print(f"✅ Ollama: {result.stdout.strip()}")
+            return True
+    except FileNotFoundError:
+        pass
+    print("❌ Ollama not installed or not in PATH")
+    return False
+
+def check_ollama_service():
+    """Check if Ollama service is running"""
+    try:
+        import requests
+        response = requests.get('http://localhost:11434/api/tags', timeout=5)
+        if response.status_code == 200:
+            print("✅ Ollama service running")
+            return True
+    except Exception:
+        pass
+    print("❌ Ollama service not running")
+    return False
+
+def check_dependencies():
+    """Check required Python packages"""
+    required_packages = [
+        'typer', 'rich', 'proxmoxer', 'structlog', 
+        'pydantic', 'cryptography', 'requests'
+    ]
+    
+    missing_packages = []
+    for package in required_packages:
+        try:
+            importlib.import_module(package)
+            print(f"✅ {package}")
+        except ImportError:
+            print(f"❌ {package}")
+            missing_packages.append(package)
+    
+    return len(missing_packages) == 0
+
+def main():
+    """Run setup verification"""
+    print("=== Proxmox AI Infrastructure Assistant Setup Check ===")
+    
+    checks = [
+        check_python_version(),
+        check_ollama(),
+        check_ollama_service(),
+        check_dependencies()
+    ]
+    
+    if all(checks):
+        print("\n🎉 All checks passed! System ready for installation.")
+        return 0
+    else:
+        print("\n❌ Some checks failed. Please resolve issues before continuing.")
+        return 1
+
+if __name__ == "__main__":
+    sys.exit(main())
+EOF
+
+# Make setup check executable
+chmod +x setup_check.py
+
+# Run setup verification
+python setup_check.py
 
 def load_credentials():
     """Load secure credentials from environment file"""
@@ -586,6 +804,13 @@ ls -la ~/.ssh/proxmox_ai_key | grep -q "^-rw-------" && echo "✅ SSH key permis
 proxmox-ai status
 proxmox-ai version
 
+# Test local AI functionality
+proxmox-ai ai-status
+proxmox-ai hardware-info
+
+# Test AI model interaction
+proxmox-ai generate vm --description "Simple Ubuntu server" --skill-level beginner
+
 # Test SSH connectivity
 ssh proxmox-ai "pvesh get /version"
 
@@ -593,6 +818,9 @@ ssh proxmox-ai "pvesh get /version"
 source /etc/proxmox-ai/credentials.env
 curl -k -H "Authorization: PVEAPIToken=$PROXMOX_API_TOKEN" \
      https://192.168.1.50:8006/api2/json/nodes
+
+# Test Ollama service
+curl http://localhost:11434/api/tags
 ```
 
 ## Troubleshooting

@@ -324,7 +324,7 @@ Keep explanation clear and concise."""
                 )
             
             # Get skill-specific configuration
-            skill_config = self.skill_levels.get(skill_level, self.skill_levels[\"intermediate\"])
+            skill_config = self.skill_levels.get(skill_level, self.skill_levels["intermediate"])
             
             # Monitor resource usage before request
             resource_before = hardware_detector.monitor_resource_usage()
