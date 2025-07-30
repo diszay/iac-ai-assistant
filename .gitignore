@@ -74,3 +74,14 @@ logs/
 # Cache
 .cache/
 *.cache
+
+# Coverage reports
+htmlcov/
+.coverage
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Temporary files
+*.tmp
+*.temp
