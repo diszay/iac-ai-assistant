@@ -31,16 +31,27 @@ A powerful, security-first Infrastructure as Code (IaC) automation tool that lev
 - **VM Management**: Streamlined Proxmox virtual machine operations
 - **Template Management**: Reusable infrastructure templates
 
-## 🚀 Quick Start
+## 🚀 Getting Started
 
-**The fastest way to get started:**
+Choose your path based on your needs:
 
+### ⚡ **Quick Start** (2 minutes)
+**For experienced users who want immediate results:**
 ```bash
-# One-command setup and start
 git clone https://github.com/your-username/proxmox-ai-assistant.git
 cd proxmox-ai-assistant
 ./scripts/start-assistant.sh chat
 ```
+👉 **[See Quick Start Guide](docs/QUICK_START.md)** for one-command setup
+
+### 📚 **Complete Setup** (10 minutes)  
+**For new users who want to understand the system:**
+👉 **[See Getting Started Guide](GETTING_STARTED.md)** for step-by-step instructions
+
+### 🎯 **Choose Your Guide:**
+- **🚀 Fast Setup**: [Quick Start Guide](docs/QUICK_START.md) - One command, start chatting immediately
+- **📖 Learn & Setup**: [Getting Started Guide](GETTING_STARTED.md) - Understand components, detailed setup
+- **🤖 Development**: [Development Agents Guide](docs/DEVELOPMENT_AGENTS.md) - Extract reusable agents for other projects
 
 ### Prerequisites
 

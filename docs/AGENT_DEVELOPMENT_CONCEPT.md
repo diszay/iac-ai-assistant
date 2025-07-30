@@ -1,8 +1,13 @@
-# 🤖 Agent Development Concept - From 5-Agent Coordination to Local AI Models
+# 🤖 Agent Development Concept - Evolution to Local AI Models
+
+## 📋 Document Purpose
+**This document explains the FUTURE evolution** from 5-agent development coordination to autonomous local AI models.
+
+**For the current 5-agent extraction guide, see:** [Development Agents Guide](DEVELOPMENT_AGENTS.md)
 
 ## Overview
 
-The Proxmox AI Infrastructure Assistant was initially designed with a 5-agent coordination system for development purposes. This document explains the evolution from multi-agent development to localized AI models using HuggingFace transformers.
+This document outlines the **future vision** for evolving from human-guided 5-agent development coordination to autonomous specialized AI models using HuggingFace transformers.
 
 ## Current State: 5-Agent Development Coordination
 

@@ -1,4 +1,9 @@
-# 🤖 Development Agents - Specialized AI Development Team
+# 🤖 Development Agents - Extractable 5-Agent Development Team
+
+## 📋 Document Purpose
+**This document provides the CURRENT 5-agent development team** ready for extraction and reuse in any project.
+
+**For future evolution concepts, see:** [Agent Development Concept](AGENT_DEVELOPMENT_CONCEPT.md)
 
 ## Overview
 

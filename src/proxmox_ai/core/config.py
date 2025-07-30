@@ -170,13 +170,6 @@ class Settings(BaseSettings):
     
     def _validate_configuration(self) -> None:
         """Validate configuration settings."""
-        # Validate Anthropic API key if AI generation is enabled
-        if self.enable_ai_generation and not self.anthropic.api_key:
-            logger.warning(
-                "AI generation enabled but no Anthropic API key provided. "
-                "Set ANTHROPIC__API_KEY environment variable."
-            )
-        
         # Validate logging configuration
         if self.logging.file_path:
             try:
@@ -211,11 +204,6 @@ class Settings(BaseSettings):
     def to_dict(self) -> Dict[str, Any]:
         """Convert settings to dictionary (excluding sensitive data)."""
         data = self.model_dump()
-        
-        # Remove sensitive information
-        if 'anthropic' in data and 'api_key' in data['anthropic']:
-            data['anthropic']['api_key'] = "***" if data['anthropic']['api_key'] else None
-        
         return data
     
 
