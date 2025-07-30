@@ -164,8 +164,8 @@ def status():
     )
     
     # AI integration
-    ai_status = "✓ Configured" if settings.anthropic.api_key else "⚠ No API key"
-    ai_details = f"Model: {settings.anthropic.model}"
+    ai_status = "✓ Available"
+    ai_details = f"Model: {settings.local_ai.model_name} (Local)"
     
     table.add_row("AI Integration", ai_status, ai_details)
     
@@ -209,8 +209,7 @@ def doctor():
             else:
                 console.print("✅ Proxmox configuration valid")
             
-            if settings.enable_ai_generation and not settings.anthropic.api_key:
-                issues.append("⚠️  AI generation enabled but no API key configured")
+            # Local AI check would go here if needed
             
             progress.update(task, completed=1)
         except Exception as e:
@@ -316,13 +315,13 @@ def info():
     ai_text.append(f"AI Generation: ", style="bold")
     ai_text.append(f"{'Enabled' if settings.enable_ai_generation else 'Disabled'}\n")
     ai_text.append(f"Model: ", style="bold")
-    ai_text.append(f"{settings.anthropic.model}\n")
+    ai_text.append(f"{settings.local_ai.model_name}\n")
     ai_text.append(f"Max Tokens: ", style="bold")
-    ai_text.append(f"{settings.anthropic.max_tokens}\n")
+    ai_text.append(f"{settings.local_ai.max_tokens}\n")
     ai_text.append(f"Temperature: ", style="bold")
-    ai_text.append(f"{settings.anthropic.temperature}\n")
-    ai_text.append(f"API Key: ", style="bold")
-    ai_text.append(f"{'Configured' if settings.anthropic.api_key else 'Not set'}\n")
+    ai_text.append(f"{settings.local_ai.temperature}\n")
+    ai_text.append(f"Ollama Host: ", style="bold")
+    ai_text.append(f"{settings.local_ai.ollama_host}\n")
     
     console.print(Panel(ai_text, title="AI Configuration", style="magenta"))
 

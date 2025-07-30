@@ -103,6 +103,7 @@ class Settings(BaseSettings):
     app_name: str = Field("Proxmox AI Assistant", description="Application name")
     version: str = Field("0.1.0", description="Application version")
     debug: bool = Field(False, description="Enable debug mode")
+    enable_ai_generation: bool = Field(True, description="Enable AI generation features")
     
     # Configuration file paths
     config_dir: Path = Field(

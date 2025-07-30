@@ -443,19 +443,20 @@ proxmox-ai-assistant/
 
 ## 📚 Documentation
 
+### 🚀 **START HERE**
+- **[GETTING_STARTED.md](GETTING_STARTED.md)** - **Complete setup guide with step-by-step instructions**
+- **[Documentation Index](docs/INDEX.md)** - Navigate all documentation easily
+
 ### 🎓 User Guides by Skill Level
 - **[Beginner Guide](docs/user-guides/beginner.md)**: Your first steps with local AI and IaC
-- **[Intermediate Guide](docs/user-guides/intermediate.md)**: Advanced automation workflows
+- **[Intermediate Guide](docs/user-guides/intermediate.md)**: Advanced automation workflows  
 - **[Expert Guide](docs/user-guides/expert.md)**: Enterprise patterns and optimization
 
-### 🔧 Installation and Setup
-- **[Installation Guide](docs/operations/installation.md)**: Complete setup with local AI
-- **[Hardware Optimization](docs/hardware-optimization.md)**: Performance tuning guide
-- **[Local AI Setup](docs/local-ai-setup.md)**: Ollama configuration and model selection
-
-### 🚀 Getting Started
-- **[Quick Start Workshop](docs/training/getting-started-workshop.md)**: Interactive tutorial
+### 🔧 Essential References
 - **[CLI Reference](docs/cli-reference.md)**: Complete command documentation
+- **[Troubleshooting](docs/troubleshooting/common-issues.md)**: Solutions to common issues
+- **[Security Guide](SECURITY.md)**: Security policies and best practices
+
 - **[Examples Gallery](docs/examples/)**: Real-world configuration examples
 
 ### 🏗️ Technical Documentation
