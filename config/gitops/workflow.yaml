@@ -8,19 +8,19 @@ workflow:
 environments:
   development:
     branch: "develop"
-    proxmox_host: "192.168.1.50"
+    proxmox_host: "YOUR_PROXMOX_HOST"
     auto_deploy: true
     approval_required: false
     
   staging:
     branch: "staging"
-    proxmox_host: "192.168.1.50"
+    proxmox_host: "YOUR_PROXMOX_HOST"
     auto_deploy: true
     approval_required: true
     
   production:
     branch: "main"
-    proxmox_host: "192.168.1.50"
+    proxmox_host: "YOUR_PROXMOX_HOST"
     auto_deploy: false
     approval_required: true
 
@@ -194,7 +194,7 @@ integrations:
       - "release"
       
   proxmox:
-    api_endpoint: "https://192.168.1.50:8006/api2/json"
+    api_endpoint: "https://YOUR_PROXMOX_HOST:8006/api2/json"
     ssl_verify: true
     connection_pool_size: 10
     

@@ -1,5 +1,30 @@
 # Proxmox AI Infrastructure Assistant - Installation Guide
 
+## 🐧 Ubuntu Quick Launch Commands
+
+**For Ubuntu users who need to launch the assistant after installation:**
+
+```bash
+# Navigate to project directory
+cd ~/projects/iac-ai-assistant
+
+# Activate virtual environment
+source venv/bin/activate
+
+# Start the AI assistant
+python -m src.proxmox_ai.cli.main
+
+# Or use the startup script
+./scripts/start-assistant.sh
+
+# Common operations
+python -m src.proxmox_ai.cli.main ai status        # Check status
+python -m src.proxmox_ai.cli.main ai chat          # Interactive mode
+python -m src.proxmox_ai.cli.main doctor           # Health check
+```
+
+---
+
 ## Overview
 
 This guide provides comprehensive installation procedures for the Proxmox AI Infrastructure Assistant with local AI integration and a security-first approach. The system uses Ollama for local AI model execution, ensuring complete privacy and offline operation. All procedures follow enterprise security standards and include verification steps.
@@ -54,9 +79,9 @@ This guide provides comprehensive installation procedures for the Proxmox AI Inf
 
 ### 1. Ollama Installation and Configuration
 
-#### Install Ollama Engine
+#### Install Ollama Engine - Ubuntu Commands
 ```bash
-# Linux/macOS Installation
+# Ubuntu/Linux Installation
 curl -fsSL https://ollama.ai/install.sh | sh
 
 # Verify installation
@@ -67,6 +92,12 @@ ollama serve &
 
 # Check service status
 curl http://localhost:11434/api/tags
+
+# Download recommended model
+ollama pull llama3.1:8b-instruct-q4_0
+
+# Verify model installation
+ollama list
 ```
 
 #### Hardware Detection and Model Selection
@@ -290,7 +321,7 @@ curl -k -H "Authorization: PVEAPIToken=root@pam!proxmox-ai-assistant=YOUR_TOKEN_
 
 ### 1. Environment Setup
 
-#### Create Project Directory Structure
+#### Create Project Directory Structure - Ubuntu Commands
 ```bash
 # Create project directory
 mkdir -p ~/projects/iac-ai-assistant
@@ -308,8 +339,11 @@ chmod 700 config/secrets
 chmod 755 src scripts tests
 ```
 
-#### Python Environment Setup
+#### Python Environment Setup - Ubuntu Commands
 ```bash
+# Navigate to project directory
+cd ~/projects/iac-ai-assistant
+
 # Create and activate virtual environment
 python3.12 -m venv venv
 source venv/bin/activate
@@ -320,10 +354,8 @@ pip install --upgrade pip setuptools wheel
 # Install from pyproject.toml (includes all dependencies)
 pip install -e .
 
-# Alternatively, install core dependencies manually:
-# pip install typer rich proxmoxer requests python-dotenv cryptography
-# pip install structlog aiohttp httpx jinja2 pydantic pydantic-settings
-# pip install pytest pytest-asyncio pytest-cov
+# Verify installation
+python -m src.proxmox_ai.cli.main --version
 
 # Save dependency list
 pip freeze > requirements.txt
@@ -763,8 +795,12 @@ chmod +x scripts/health_check.sh
 
 ## Verification and Testing
 
-### 1. Installation Verification
+### 1. Installation Verification - Ubuntu Commands
 ```bash
+# Navigate to project directory
+cd ~/projects/iac-ai-assistant
+source venv/bin/activate
+
 # Verify all components
 echo "=== Installation Verification ==="
 
@@ -773,8 +809,7 @@ python --version
 pip list | grep -E "(typer|rich|proxmoxer)"
 
 # Check application installation
-which proxmox-ai
-proxmox-ai --version
+python -m src.proxmox_ai.cli.main --version
 
 # Check credentials
 ls -la /etc/proxmox-ai/credentials.env
@@ -797,18 +832,22 @@ sudo -u nobody cat /etc/proxmox-ai/credentials.env 2>&1 | grep -q "Permission de
 ls -la ~/.ssh/proxmox_ai_key | grep -q "^-rw-------" && echo "✅ SSH key permissions secure"
 ```
 
-### 3. Functional Testing
+### 3. Functional Testing - Ubuntu Commands
 ```bash
+# Navigate to project directory
+cd ~/projects/iac-ai-assistant
+source venv/bin/activate
+
 # Test basic functionality
-proxmox-ai status
-proxmox-ai version
+python -m src.proxmox_ai.cli.main status
+python -m src.proxmox_ai.cli.main --version
 
 # Test local AI functionality
-proxmox-ai ai-status
-proxmox-ai hardware-info
+python -m src.proxmox_ai.cli.main ai status
+python -m src.proxmox_ai.cli.main hardware-info
 
 # Test AI model interaction
-proxmox-ai generate vm --description "Simple Ubuntu server" --skill-level beginner
+python -m src.proxmox_ai.cli.main ai generate terraform "Simple Ubuntu server" --skill beginner
 
 # Test SSH connectivity
 ssh proxmox-ai "pvesh get /version"

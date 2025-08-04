@@ -91,10 +91,10 @@ cloud_init:
 
 network:
   subnets:
-    management: "192.168.1.0/24"
-    development: "192.168.10.0/24"
+    management: "YOUR_VM_IP/24"
+    development: "YOUR_DEV_NETWORK/24"
     staging: "192.168.20.0/24"
-    production: "192.168.30.0/24"
+    production: "YOUR_PROD_NETWORK/24"
   
   vlans:
     management: 1

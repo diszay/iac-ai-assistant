@@ -120,6 +120,17 @@ class EfficientModelManager:
             ),
             
             # High-performance models (4GB+)
+            "llama3.1:8b-instruct-q4_0": ModelInfo(
+                name="llama3.1:8b-instruct-q4_0",
+                size_gb=4.7,
+                quantization="Q4_0",
+                family="llama3.1",
+                description="Advanced 8B model excellent for IaC and technical tasks",
+                downloaded=False,
+                last_used=None,
+                performance_score=9.5
+            ),
+            
             "codellama:7b-instruct-q4_K_M": ModelInfo(
                 name="codellama:7b-instruct-q4_K_M",
                 size_gb=4.5,
@@ -383,6 +394,8 @@ class EfficientModelManager:
             return 2.5
         elif "7b" in model_name:
             return 4.0
+        elif "8b" in model_name:
+            return 4.7
         elif "13b" in model_name:
             return 8.0
         else:

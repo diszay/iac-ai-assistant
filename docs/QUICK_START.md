@@ -1,5 +1,31 @@
 # 🚀 Quick Start Guide - Proxmox AI Infrastructure Assistant
 
+## 🐧 Ubuntu Terminal Commands - Copy & Paste Ready
+
+**For Ubuntu users who need immediate access:**
+
+```bash
+# Navigate to project directory
+cd ~/projects/iac-ai-assistant
+
+# Activate virtual environment
+source venv/bin/activate
+
+# Start the AI assistant
+python -m src.proxmox_ai.cli.main
+
+# Or use the convenient script
+./scripts/start-assistant.sh
+
+# Quick status check
+python -m src.proxmox_ai.cli.main ai status
+
+# Interactive AI chat
+python -m src.proxmox_ai.cli.main ai chat
+```
+
+---
+
 **Get your local AI-powered infrastructure automation running in minutes!**
 
 This guide will help you start the Proxmox AI Assistant and begin automating your infrastructure with intelligent recommendations and Terraform/Ansible generation.
@@ -62,63 +88,75 @@ ollama pull llama3.1:8b-instruct-q4_0
 ollama pull llama3.1:8b-instruct-q8_0
 ```
 
-### Step 3: Install the Proxmox AI Assistant
+### Step 3: Install the Proxmox AI Assistant - Ubuntu Commands
 
 ```bash
+# Create projects directory
+mkdir -p ~/projects
+cd ~/projects
+
 # Clone the repository
 git clone https://github.com/your-username/proxmox-ai-assistant.git
-cd proxmox-ai-assistant
+cd iac-ai-assistant
 
 # Create and activate virtual environment
 python3.12 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate
 
 # Install the application
 pip install -e .
 
 # Verify installation
-proxmox-ai --version
+python -m src.proxmox_ai.cli.main --version
 ```
 
-### Step 4: Configure the Assistant
+### Step 4: Configure the Assistant - Ubuntu Commands
 
 ```bash
+# Navigate to project and activate environment
+cd ~/projects/iac-ai-assistant
+source venv/bin/activate
+
 # Initialize configuration
-proxmox-ai config init
+python -m src.proxmox_ai.cli.main config init
 
 # Configure Proxmox connection
-proxmox-ai config set proxmox.host "YOUR_PROXMOX_HOST"
-proxmox-ai config set proxmox.user "root@pam"
-proxmox-ai config set proxmox.port "8006"
+python -m src.proxmox_ai.cli.main config set proxmox.host "YOUR_PROXMOX_HOST"
+python -m src.proxmox_ai.cli.main config set proxmox.user "root@pam"
+python -m src.proxmox_ai.cli.main config set proxmox.port "8006"
 
 # Configure authentication (choose one method):
 
 # Method A: API Token (Recommended)
-proxmox-ai config set proxmox.api_token_id "root@pam!terraform"
-proxmox-ai config set proxmox.api_token_secret "your-api-token-here"
+python -m src.proxmox_ai.cli.main config set proxmox.api_token_id "root@pam!terraform"
+python -m src.proxmox_ai.cli.main config set proxmox.api_token_secret "your-api-token-here"
 
 # Method B: Password (Less secure)
-proxmox-ai config set proxmox.password "your-password-here"
+python -m src.proxmox_ai.cli.main config set proxmox.password "your-password-here"
 
 # Configure AI settings (optional - auto-detected)
-proxmox-ai config set ai.model "llama3.1:8b-instruct-q4_0"
-proxmox-ai config set ai.skill_level "intermediate"
+python -m src.proxmox_ai.cli.main config set ai.model "llama3.1:8b-instruct-q4_0"
+python -m src.proxmox_ai.cli.main config set ai.skill_level "intermediate"
 ```
 
-### Step 5: Test the Setup
+### Step 5: Test the Setup - Ubuntu Commands
 
 ```bash
+# Navigate to project and activate environment
+cd ~/projects/iac-ai-assistant
+source venv/bin/activate
+
 # Run health check
-proxmox-ai doctor
+python -m src.proxmox_ai.cli.main doctor
 
 # Test AI integration
-proxmox-ai ai-status
+python -m src.proxmox_ai.cli.main ai status
 
 # Test Proxmox connection
-proxmox-ai vm list
+python -m src.proxmox_ai.cli.main vm list
 
 # Start interactive mode
-proxmox-ai chat
+python -m src.proxmox_ai.cli.main ai chat
 ```
 
 ## 🎯 First Use Examples
@@ -136,22 +174,30 @@ proxmox-ai chat
 "Set up a WordPress hosting environment"
 ```
 
-### Example 2: Generate Terraform Infrastructure
+### Example 2: Generate Terraform Infrastructure - Ubuntu Commands
 
 ```bash
+# Navigate to project and activate environment
+cd ~/projects/iac-ai-assistant
+source venv/bin/activate
+
 # Command-line generation
-proxmox-ai generate terraform "Create 3 Ubuntu servers for a development cluster with load balancer"
+python -m src.proxmox_ai.cli.main ai generate terraform "Create 3 Ubuntu servers for a development cluster with load balancer"
 
 # Or interactively
-proxmox-ai chat
+python -m src.proxmox_ai.cli.main ai chat
 # Then: "Generate terraform code for a Kubernetes cluster with 3 nodes"
 ```
 
-### Example 3: Get Infrastructure Recommendations
+### Example 3: Get Infrastructure Recommendations - Ubuntu Commands
 
 ```bash
+# Navigate to project and activate environment
+cd ~/projects/iac-ai-assistant
+source venv/bin/activate
+
 # Ask for best practices
-proxmox-ai chat
+python -m src.proxmox_ai.cli.main ai chat
 # Then: "What are the security best practices for production VMs?"
 # Or: "How should I configure networking for a multi-tier application?"
 # Or: "Optimize my existing terraform configuration for better performance"

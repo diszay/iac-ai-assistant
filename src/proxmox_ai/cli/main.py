@@ -267,6 +267,105 @@ def doctor():
 
 
 @app.command()
+def chat(
+    skill_level: str = typer.Option(
+        "intermediate", "--skill-level", "-s",
+        help="AI interaction skill level (beginner, intermediate, expert)"
+    ),
+    mode: str = typer.Option(
+        "general", "--mode", "-m",
+        help="Chat mode (general, troubleshooting, learning, infrastructure)"
+    ),
+    context_file: Optional[Path] = typer.Option(
+        None, "--context", "-c",
+        help="Load context from file (logs, configs, etc.)"
+    ),
+    save_session: Optional[Path] = typer.Option(
+        None, "--save-session",
+        help="Save chat session to file"
+    ),
+    use_local: bool = typer.Option(
+        True, "--local/--cloud",
+        help="Use local AI model or cloud service"
+    )
+):
+    """
+    Start interactive chat session with the AI assistant.
+    
+    Provides conversational interface for infrastructure automation,
+    troubleshooting, and learning. Maintains context throughout the session.
+    
+    Examples:
+      proxmox-ai chat --skill-level beginner
+      proxmox-ai chat --mode troubleshooting --context /var/log/proxmox.log
+      proxmox-ai chat --mode learning --save-session my-session.json
+    """
+    # Import here to avoid circular import
+    from .commands.ai_commands import _run_chat_session
+    asyncio.run(_run_chat_session(skill_level, mode, context_file, save_session, use_local))
+
+
+@app.command()
+def benchmark_models(
+    models: Optional[str] = typer.Option(
+        None, "--models", "-m",
+        help="Comma-separated list of models to benchmark"
+    ),
+    duration: int = typer.Option(
+        30, "--duration", "-d",
+        help="Benchmark duration in seconds"
+    ),
+    workload: str = typer.Option(
+        "infrastructure", "--workload", "-w",
+        help="Type of workload to test (infrastructure, general, coding)"
+    ),
+    output_file: Optional[Path] = typer.Option(
+        None, "--output", "-o",
+        help="Save benchmark results to file"
+    )
+):
+    """
+    Benchmark AI model performance on current hardware.
+    
+    Tests model speed, memory usage, and response quality
+    across different workload types.
+    """
+    # Import here to avoid circular import
+    from .commands.ai_commands import _benchmark_model
+    asyncio.run(_benchmark_model())
+
+
+@app.command()
+def optimize_hardware(
+    auto: bool = typer.Option(
+        False, "--auto",
+        help="Automatically apply optimization recommendations"
+    ),
+    gpu: bool = typer.Option(
+        False, "--gpu",
+        help="Include GPU optimization"
+    ),
+    memory_limit: Optional[int] = typer.Option(
+        None, "--memory-limit",
+        help="Maximum memory usage in GB"
+    ),
+    cpu_threads: Optional[int] = typer.Option(
+        None, "--cpu-threads",
+        help="Number of CPU threads to use"
+    )
+):
+    """
+    Optimize AI models and settings for current hardware.
+    
+    Analyzes system capabilities and downloads optimal models,
+    adjusts configuration for best performance.
+    """
+    # Import here to avoid circular import  
+    from .commands.ai_commands import _optimize_models
+    asyncio.run(_optimize_models())
+
+
+@app.command()
 def info():
     """Display detailed system information."""
     settings = get_settings()

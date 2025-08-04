@@ -19,6 +19,8 @@ import structlog
 
 from ..core.hardware_detector import hardware_detector, ModelRecommendation
 from .natural_language_processor import nlp_processor, ParsedIntent
+from .system_prompts import system_prompts_engine, PromptType, PromptContext, TechnicalDomain, ExpertiseLevel
+from .knowledge_base import technical_knowledge_base, KnowledgeContext
 
 logger = structlog.get_logger(__name__)
 
@@ -91,35 +93,51 @@ class OptimizedLocalAIClient:
         )
     
     def _initialize_skill_levels(self) -> Dict[str, Dict[str, Any]]:
-        """Initialize skill-level configurations optimized for hardware."""
+        """Initialize skill-level configurations optimized for Intel N150 hardware."""
         perf_profile = hardware_detector.get_performance_profile()
+        available_memory = hardware_detector.specs.available_memory_gb
+        
+        # Conservative token limits for Intel N150 system
+        if available_memory > 6.0:
+            base_tokens = {"beginner": 512, "intermediate": 1024, "expert": 2048}
+        elif available_memory > 4.0:
+            base_tokens = {"beginner": 256, "intermediate": 512, "expert": 1024}
+        else:
+            base_tokens = {"beginner": 128, "intermediate": 256, "expert": 512}
         
         base_levels = {
             "beginner": {
                 "description": "Simple, guided explanations with step-by-step instructions",
-                "max_tokens": min(512, self.hardware_config["max_context_length"] // 4),
+                "max_tokens": min(base_tokens["beginner"], self.hardware_config["max_context_length"] // 4),
                 "temperature": 0.1,
-                "complexity": "low"
+                "complexity": "low",
+                "top_k": 20,  # More focused responses
+                "repeat_penalty": 1.2
             },
             "intermediate": {
                 "description": "Balanced detail with best practices and common patterns",
-                "max_tokens": min(1024, self.hardware_config["max_context_length"] // 2),
-                "temperature": 0.2,
-                "complexity": "medium"
+                "max_tokens": min(base_tokens["intermediate"], self.hardware_config["max_context_length"] // 2),
+                "temperature": 0.15,
+                "complexity": "medium",
+                "top_k": 30,
+                "repeat_penalty": 1.1
             },
             "expert": {
                 "description": "Advanced configurations, optimizations, and edge cases",
-                "max_tokens": self.hardware_config["max_context_length"],
+                "max_tokens": min(base_tokens["expert"], self.hardware_config["max_context_length"]),
                 "temperature": 0.1,
-                "complexity": "high"
+                "complexity": "high",
+                "top_k": 40,
+                "repeat_penalty": 1.1
             }
         }
         
-        # Adjust based on performance profile
-        if perf_profile["model_quality"] == "Basic":
-            # Reduce complexity for low-end hardware
+        # Further adjust based on CPU performance (Intel N150 is low-power)
+        if "N150" in hardware_detector.specs.cpu_model or perf_profile["model_quality"] == "Basic":
+            # Conservative settings for low-power processors
             for level in base_levels.values():
                 level["max_tokens"] = min(level["max_tokens"], 256)
+                level["temperature"] = max(0.05, level["temperature"] - 0.05)  # Even more focused
         
         return base_levels
     
@@ -156,13 +174,27 @@ class OptimizedLocalAIClient:
         return self.context_cache.get(cache_key)
     
     def _update_cache(self, cache_key: str, response: str):
-        """Update response cache with size limit."""
-        max_cache_size = 50  # Limit cache size for memory efficiency
+        """Update response cache with smart size management for Intel N150."""
+        # Adaptive cache size based on available memory
+        available_memory_gb = hardware_detector.specs.available_memory_gb
         
+        if available_memory_gb > 6.0:
+            max_cache_size = 100  # More cache for systems with more memory
+        elif available_memory_gb > 4.0:
+            max_cache_size = 50   # Medium cache
+        else:
+            max_cache_size = 25   # Conservative cache for low memory systems
+        
+        # Implement LRU-like cache eviction
         if len(self.context_cache) >= max_cache_size:
-            # Remove oldest entry
-            oldest_key = next(iter(self.context_cache))
-            del self.context_cache[oldest_key]
+            # Remove oldest entries (first 25% of cache)
+            entries_to_remove = max(1, len(self.context_cache) // 4)
+            keys_to_remove = list(self.context_cache.keys())[:entries_to_remove]
+            
+            for key in keys_to_remove:
+                del self.context_cache[key]
+                
+            logger.debug(f"Cache cleaned: removed {entries_to_remove} entries")
         
         self.context_cache[cache_key] = response
     
@@ -293,32 +325,106 @@ Keep explanation clear and concise."""
     
     async def intelligent_conversation(self, user_input: str, context: Optional[Dict] = None) -> AIResponse:
         """
-        Enhanced conversation with natural language understanding.
+        Enhanced conversation with comprehensive technical knowledge and system prompts.
         
         Args:
             user_input: Raw user input in natural language
             context: Optional conversation context
             
         Returns:
-            AIResponse with intelligent recommendations
+            AIResponse with world-class intelligent recommendations
         """
         # Parse user intent using NLP
         parsed_intent = nlp_processor.parse_user_input(user_input, context)
         
-        # Generate enhanced prompt based on intent
-        enhanced_prompt = nlp_processor.generate_prompt_enhancement(parsed_intent)
+        # Determine technical domain from intent
+        if parsed_intent.infrastructure_type:
+            if parsed_intent.infrastructure_type.value == "virtualization":
+                domain = TechnicalDomain.VIRTUALIZATION
+            elif parsed_intent.infrastructure_type.value == "containers":
+                domain = TechnicalDomain.CONTAINERIZATION
+            elif parsed_intent.infrastructure_type.value == "cloud":
+                domain = TechnicalDomain.CLOUD_COMPUTING
+            elif parsed_intent.infrastructure_type.value == "iac":
+                domain = TechnicalDomain.INFRASTRUCTURE_AS_CODE
+            else:
+                domain = TechnicalDomain.SYSTEM_ENGINEERING
+        else:
+            domain = TechnicalDomain.SYSTEM_ENGINEERING
         
-        # Combine with original user input
-        full_prompt = f"{enhanced_prompt}\n\nORIGINAL USER REQUEST:\n{user_input}\n\nPlease provide a comprehensive response that addresses the user's specific intent and requirements."
+        # Map intent to prompt type
+        prompt_type_mapping = {
+            "create_vm": PromptType.INFRASTRUCTURE_GENERATION,
+            "deploy_infrastructure": PromptType.INFRASTRUCTURE_GENERATION,
+            "generate_terraform": PromptType.INFRASTRUCTURE_GENERATION,
+            "generate_ansible": PromptType.INFRASTRUCTURE_GENERATION,
+            "security_review": PromptType.SECURITY_REVIEW,
+            "optimize_config": PromptType.OPTIMIZATION,
+            "explain_code": PromptType.LEARNING,
+            "troubleshoot": PromptType.TROUBLESHOOTING,
+            "best_practices": PromptType.BEST_PRACTICES,
+            "general_question": PromptType.GENERAL_CHAT
+        }
+        prompt_type = prompt_type_mapping.get(parsed_intent.intent_type.value, PromptType.GENERAL_CHAT)
         
-        logger.info(
-            "Processing intelligent conversation",
-            intent=parsed_intent.intent_type.value,
-            confidence=parsed_intent.confidence,
-            skill_level=parsed_intent.skill_level
+        # Convert skill level
+        expertise_level = ExpertiseLevel(parsed_intent.skill_level)
+        
+        # Detect technologies mentioned in user input
+        technologies = self._extract_technologies_from_input(user_input)
+        
+        # Create comprehensive prompt context
+        prompt_context = PromptContext(
+            prompt_type=prompt_type,
+            domain=domain,
+            expertise_level=expertise_level,
+            technologies=technologies,
+            user_intent=parsed_intent,
+            security_level="medium",
+            compliance_requirements=[],
+            environment_type="production",
+            additional_context=context or {}
         )
         
-        # Make request with appropriate skill level
+        # Generate comprehensive system prompt with domain expertise
+        system_prompt = system_prompts_engine.generate_system_prompt(prompt_context)
+        
+        # Get domain-specific knowledge
+        knowledge_context = KnowledgeContext(
+            domain=domain,
+            expertise_level=expertise_level,
+            specific_technologies=technologies,
+            use_case=parsed_intent.intent_type.value,
+            security_requirements="medium",
+            compliance_needs=[]
+        )
+        
+        domain_knowledge = technical_knowledge_base.get_domain_knowledge(knowledge_context)
+        security_recommendations = technical_knowledge_base.get_security_recommendations(domain, technologies)
+        
+        # Combine system prompt with user input
+        full_prompt = f"""{system_prompt}
+
+DOMAIN-SPECIFIC CONTEXT:
+{self._format_domain_knowledge(domain_knowledge)}
+
+SECURITY GUIDELINES:
+{chr(10).join(f'• {rec}' for rec in security_recommendations[:5])}
+
+USER REQUEST: {user_input}
+
+Please provide a comprehensive, expert-level response that integrates your domain knowledge, follows security best practices, and is appropriate for the {expertise_level.value} skill level."""
+        
+        logger.info(
+            "Processing intelligent conversation with enhanced knowledge",
+            intent=parsed_intent.intent_type.value,
+            domain=domain.value,
+            expertise_level=expertise_level.value,
+            technologies=technologies,
+            confidence=parsed_intent.confidence
+        )
+        
+        # Make request with comprehensive prompt
         response = await self._make_optimized_request(full_prompt, parsed_intent.skill_level)
         
         # Enhance response with intent-specific information
@@ -326,6 +432,59 @@ Keep explanation clear and concise."""
             response.content = self._enhance_infrastructure_response(response.content, parsed_intent)
         
         return response
+    
+    def _extract_technologies_from_input(self, user_input: str) -> List[str]:
+        """Extract mentioned technologies from user input."""
+        technology_keywords = {
+            "proxmox", "vmware", "hyper-v", "docker", "kubernetes", "terraform", "ansible",
+            "aws", "azure", "gcp", "linux", "ubuntu", "centos", "nginx", "apache",
+            "mysql", "postgresql", "redis", "mongodb", "elasticsearch", "grafana",
+            "prometheus", "jenkins", "gitlab", "git", "python", "java", "nodejs",
+            "istio", "linkerd", "consul", "vault", "nomad", "ceph", "zfs", "nfs"
+        }
+        
+        found_technologies = []
+        user_input_lower = user_input.lower()
+        
+        for tech in technology_keywords:
+            if tech in user_input_lower:
+                found_technologies.append(tech)
+        
+        return found_technologies
+    
+    def _format_domain_knowledge(self, domain_knowledge: Dict[str, Any]) -> str:
+        """Format domain knowledge for inclusion in prompt."""
+        if not domain_knowledge:
+            return "No specific domain knowledge available."
+        
+        formatted_parts = []
+        
+        for topic, knowledge in domain_knowledge.items():
+            if topic == "related_domains":
+                continue
+                
+            if isinstance(knowledge, dict):
+                formatted_parts.append(f"**{knowledge.get('topic', topic)}:**")
+                
+                # Add key concepts
+                if 'concepts' in knowledge:
+                    concepts = knowledge['concepts']
+                    if concepts:
+                        formatted_parts.append("Key Concepts:")
+                        for concept, definition in list(concepts.items())[:3]:
+                            formatted_parts.append(f"- {concept}: {definition}")
+                
+                # Add best practices
+                if 'best_practices' in knowledge:
+                    practices = knowledge['best_practices'][:3]
+                    if practices:
+                        formatted_parts.append("Best Practices:")
+                        for practice in practices:
+                            formatted_parts.append(f"- {practice}")
+                
+                formatted_parts.append("")  # Empty line
+        
+        return "\n".join(formatted_parts)
     
     def _enhance_infrastructure_response(self, content: str, parsed_intent: ParsedIntent) -> str:
         """Enhance infrastructure responses with practical next steps."""

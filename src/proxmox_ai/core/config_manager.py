@@ -26,7 +26,7 @@ class ProxmoxCredentials:
     password: str
     token_id: Optional[str] = None
     token_secret: Optional[str] = None
-    verify_ssl: bool = False
+    verify_ssl: bool = True
 
 @dataclass
 class ConfigurationChange:
@@ -328,7 +328,7 @@ def main():
         host="192.168.1.50",
         user="root@pam",
         password="[PROXMOX_ROOT_PASSWORD]",  # This should come from environment variable
-        verify_ssl=False
+        verify_ssl=True
     )
     
     config_manager.store_credentials(credentials, "production")

@@ -85,3 +85,51 @@ htmlcov/
 # Temporary files
 *.tmp
 *.temp
+
+# Reports and generated content
+reports/
+*.json
+*_report.json
+*_results.json
+validation_*.json
+ai_*.json
+bandit_report.json
+safety_report.json
+core_*.json
+
+# Test artifacts
+test_*.py.backup
+*.pytest_cache/
+.tox/
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+terraform_*.tf
+
+# Infrastructure generated files
+infrastructure/generated/
+terraform_ai_generated_*.tf
+
+# AI models and cache
+models/
+.ollama/
+ai_cache/
+
+# Build and distribution
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Documentation builds
+docs/_build/
+site/
+
+# Backup files
+*.bak
+*.backup
+*~
+#*

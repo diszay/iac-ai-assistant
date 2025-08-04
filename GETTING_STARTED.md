@@ -1,57 +1,691 @@
 # 🚀 Getting Started with Proxmox AI Infrastructure Assistant
 
-Welcome to the **Proxmox AI Infrastructure Assistant** - your complete solution for local AI-powered infrastructure automation. This guide will walk you through everything you need to get started, from installation to your first infrastructure deployment.
+## 🐧 Ubuntu Terminal Commands - Copy & Paste Ready
 
-## 📋 Table of Contents
+**For Ubuntu users who need easy copy-paste commands:**
 
-1. [Prerequisites](#prerequisites)
-2. [Installation](#installation)
-3. [Configuration](#configuration)
-4. [First Run](#first-run)
-5. [Basic Usage](#basic-usage)
-6. [Skill Level Guide](#skill-level-guide)
-7. [Troubleshooting](#troubleshooting)
-8. [Next Steps](#next-steps)
+```bash
+# Navigate to project directory
+cd ~/projects/iac-ai-assistant
 
-## 🎯 Prerequisites
+# Activate virtual environment
+source venv/bin/activate
 
-### System Requirements
+# Start the AI assistant
+python -m src.proxmox_ai.cli.main
 
-**Minimum Requirements:**
-- **OS**: Linux, macOS, or Windows
-- **RAM**: 4GB (8GB recommended)
-- **Storage**: 10GB free space
-- **CPU**: 2+ cores (4+ cores recommended)
+# Or use the start script
+./scripts/start-assistant.sh
 
-**Recommended for Optimal Performance:**
-- **RAM**: 8GB+ (for better AI model performance)
-- **CPU**: 4+ cores with good single-thread performance
-- **Storage**: SSD with 20GB+ free space
-- **Network**: Stable connection for initial model downloads
+# Quick status check
+python -m src.proxmox_ai.cli.main ai status
 
-### Software Dependencies
+# Interactive AI chat mode
+python -m src.proxmox_ai.cli.main ai chat
 
-1. **Python 3.12+**
-   ```bash
-   # Check your Python version
-   python3 --version
-   
-   # If you need to install Python 3.12+
-   # Ubuntu/Debian:
-   sudo apt update && sudo apt install python3.12 python3.12-venv
-   
-   # macOS (with Homebrew):
-   brew install python@3.12
-   
-   # Windows: Download from python.org
-   ```
+# Generate your first infrastructure
+python -m src.proxmox_ai.cli.main ai generate terraform "Ubuntu web server with 2GB RAM"
+```
 
-2. **Git** (for cloning the repository)
-   ```bash
-   # Ubuntu/Debian:
-   sudo apt install git
-   
-   # macOS:
+---
+
+Welcome to the **Proxmox AI Infrastructure Assistant** - your complete solution for local AI-powered infrastructure automation with complete privacy and security. This guide provides multiple paths to get you started quickly based on your experience level and needs.
+
+## 🎯 Choose Your Path
+
+**🚀 I want to start immediately (2 minutes)**  
+👉 [Express Setup](#express-setup) - One command to get running
+
+**📚 I want to understand what I'm installing (10 minutes)**  
+👉 [Guided Setup](#guided-setup) - Step-by-step with explanations
+
+**🔧 I want full control over the installation (30 minutes)**  
+👉 [Advanced Setup](#advanced-setup) - Complete customization
+
+**🆘 I'm having problems**  
+👉 [Troubleshooting](#troubleshooting) - Solutions to common issues
+
+---
+
+## 🚀 Express Setup (2 Minutes)
+
+**Perfect for:** Experienced users who want to start immediately
+
+### Quick Requirements Check ✅
+- [ ] **Python 3.12+** installed (`python3.12 --version`)
+- [ ] **4GB+ RAM** available  
+- [ ] **15GB+ disk space** free
+- [ ] **Proxmox server** accessible on your network
+
+### One-Command Installation
+```bash
+# Download and run the express installer
+curl -fsSL https://raw.githubusercontent.com/diszay/iac-ai-assistant/main/scripts/express-install.sh | bash
+
+# That's it! The script will:
+# ✅ Install Ollama (local AI engine)
+# ✅ Download optimal AI model for your hardware
+# ✅ Install Proxmox AI Assistant
+# ✅ Guide you through basic configuration
+# ✅ Test everything is working
+```
+
+### Ubuntu Terminal Commands After Installation
+```bash
+# Navigate to the installed directory
+cd ~/projects/iac-ai-assistant
+
+# Activate the virtual environment
+source venv/bin/activate
+
+# Start the assistant
+python -m src.proxmox_ai.cli.main
+
+# Or use the convenient script
+./scripts/start-assistant.sh
+```
+
+### Express Configuration
+```bash
+# Navigate to project directory
+cd ~/projects/iac-ai-assistant
+source venv/bin/activate
+
+# Configure your Proxmox connection (when prompted)
+Enter Proxmox host (e.g., 192.168.1.50): YOUR_HOST
+Enter SSH port (default 22): 22
+Choose authentication method: [1] API Token [2] Password
+Enter API token or password: YOUR_CREDENTIALS
+
+# Test your setup
+python -m src.proxmox_ai.cli.main status  # Should show all green checkmarks
+```
+
+### Start Using Immediately
+```bash
+# Ubuntu Terminal Commands:
+cd ~/projects/iac-ai-assistant
+source venv/bin/activate
+
+# Start interactive AI chat
+python -m src.proxmox_ai.cli.main ai chat
+
+# Or generate your first infrastructure
+python -m src.proxmox_ai.cli.main ai generate terraform "Ubuntu web server with 2GB RAM"
+
+# Or use the convenient script
+./scripts/start-assistant.sh
+```
+
+**✅ Done!** Skip to [Basic Usage](#basic-usage) to start automating your infrastructure.
+
+---
+
+## 📚 Guided Setup (10 Minutes)
+
+**Perfect for:** New users who want to understand each step
+
+### Table of Contents
+1. [Requirements Check](#requirements-check)
+2. [Local AI Setup](#local-ai-setup)
+3. [Application Installation](#application-installation)
+4. [Configuration](#configuration)
+5. [First Test](#first-test)
+
+### 1. Requirements Check
+
+Let's make sure your system is ready:
+
+#### ✅ System Check - Ubuntu Terminal Commands
+```bash
+# Check Python version (need 3.12+)
+python3.12 --version || python3 --version
+
+# Check available memory (need 4GB+)
+free -h | grep "Mem:"
+
+# Check disk space (need 15GB+)  
+df -h | head -2
+
+# Check network connectivity to your Proxmox
+ping -c 3 YOUR_PROXMOX_HOST  # Replace with your Proxmox IP
+```
+
+#### 🔧 Install Missing Requirements
+
+**Python 3.12 (if needed):**
+```bash
+# Ubuntu/Debian
+sudo apt update && sudo apt install python3.12 python3.12-venv python3.12-pip
+
+# macOS  
+brew install python@3.12
+
+# Windows (via winget)
+winget install Python.Python.3.12
+```
+
+**Git (if needed):**
+```bash
+# Ubuntu/Debian
+sudo apt install git
+
+# macOS (usually pre-installed)
+git --version
+
+# Windows  
+winget install Git.Git
+```
+
+### 2. Local AI Setup
+
+We use Ollama for local AI processing - no cloud dependencies!
+
+#### Install Ollama
+```bash
+# Linux/macOS - one command
+curl -fsSL https://ollama.ai/install.sh | sh
+
+# Windows - download installer from ollama.ai
+# Or use: winget install Ollama.Ollama
+
+# Verify installation
+ollama --version
+```
+
+#### Start Ollama Service
+```bash
+# Start the service
+ollama serve &
+
+# Verify it's running (should return JSON)
+curl http://localhost:11434/api/tags
+```
+
+#### Choose Your AI Model
+We'll automatically detect the best model for your hardware:
+
+```bash
+# Check your system specs
+echo "RAM: $(free -h | grep Mem | awk '{print $2}')"
+echo "CPU cores: $(nproc)"
+
+# We'll recommend:
+# 4-6GB RAM: llama3.2:3b-instruct-q4_0 (2GB model)
+# 6-12GB RAM: llama3.1:8b-instruct-q4_0 (4.5GB model)  
+# 12GB+ RAM: llama3.1:8b-instruct-q8_0 (8GB model)
+```
+
+### 3. Application Installation
+
+#### Clone and Install - Ubuntu Terminal Commands
+```bash
+# Navigate to projects directory
+mkdir -p ~/projects
+cd ~/projects
+
+# Clone the repository
+git clone https://github.com/diszay/iac-ai-assistant.git
+cd iac-ai-assistant
+
+# Create virtual environment (keeps everything isolated)
+python3.12 -m venv venv
+
+# Activate it
+source venv/bin/activate
+
+# Install the application
+pip install -e .
+
+# Verify installation
+python -m src.proxmox_ai.cli.main --version
+```
+
+### 4. Configuration
+
+#### Basic Configuration - Ubuntu Terminal Commands
+```bash
+# Navigate to project and activate environment
+cd ~/projects/iac-ai-assistant
+source venv/bin/activate
+
+# Initialize configuration (creates secure config files)
+python -m src.proxmox_ai.cli.main config init
+
+# Configure your Proxmox connection
+python -m src.proxmox_ai.cli.main config set proxmox.host "YOUR_PROXMOX_IP"
+python -m src.proxmox_ai.cli.main config set proxmox.port "8006"  
+python -m src.proxmox_ai.cli.main config set proxmox.user "root@pam"
+
+# Choose authentication method:
+# Option A: API Token (recommended for security)
+python -m src.proxmox_ai.cli.main config set proxmox.api_token "YOUR_API_TOKEN"
+
+# Option B: Password (less secure but easier)
+python -m src.proxmox_ai.cli.main config set proxmox.password "YOUR_PASSWORD"
+```
+
+#### AI Configuration (Auto-detected) - Ubuntu Terminal Commands
+```bash
+# Navigate to project and activate environment
+cd ~/projects/iac-ai-assistant
+source venv/bin/activate
+
+# The application will automatically:
+# ✅ Detect your hardware capabilities
+# ✅ Download the optimal AI model
+# ✅ Configure memory settings
+# ✅ Set appropriate skill level
+
+# Or manually configure:
+python -m src.proxmox_ai.cli.main config set ai.model "llama3.1:8b-instruct-q4_0"
+python -m src.proxmox_ai.cli.main config set ai.skill_level "intermediate"
+```
+
+### 5. First Test
+
+Let's make sure everything works:
+
+```bash
+# Ubuntu Terminal Commands:
+cd ~/projects/iac-ai-assistant
+source venv/bin/activate
+
+# Run comprehensive diagnostics
+python -m src.proxmox_ai.cli.main doctor
+
+# Expected output:
+# ✅ Python environment: OK
+# ✅ Ollama service: Running  
+# ✅ AI model: Available
+# ✅ Proxmox connection: Connected
+# ✅ Configuration: Valid
+# ✅ Security: Configured
+
+# Test AI functionality
+python -m src.proxmox_ai.cli.main ask "Hello, can you help me with infrastructure?"
+
+# Test Proxmox connectivity
+python -m src.proxmox_ai.cli.main vm list
+```
+
+**🎉 Success!** Continue to [Basic Usage](#basic-usage)
+
+---
+
+## 🔧 Advanced Setup (30 Minutes)
+
+**Perfect for:** Users who want complete control and customization
+
+### Table of Contents  
+1. [Custom Python Environment](#custom-python-environment)
+2. [Advanced AI Configuration](#advanced-ai-configuration)
+3. [Security Hardening](#security-hardening) 
+4. [Performance Optimization](#performance-optimization)
+5. [Enterprise Features](#enterprise-features)
+
+### Custom Python Environment
+
+For advanced users who want complete control:
+
+```bash
+# Use pyenv for multiple Python versions
+curl https://pyenv.run | bash
+pyenv install 3.12.3
+pyenv local 3.12.3
+
+# Create custom virtual environment
+python -m venv --copies --clear proxmox-ai-env
+source proxmox-ai-env/bin/activate
+
+# Install with specific versions
+pip install -r requirements-locked.txt
+```
+
+---
+
+## 🛠️ Basic Usage
+
+Now that you have the system installed, let's learn how to use it effectively!
+
+### 💬 Interactive AI Chat (Easiest Way)
+
+The chat mode is perfect for beginners and natural conversation:
+
+```bash
+# Start interactive chat
+proxmox-ai chat
+
+# Now you can ask natural questions like:
+"Create a simple web server for my blog"
+"I need 3 Ubuntu VMs for a development cluster"  
+"How do I add more memory to an existing VM?"
+"What's the best way to backup my VMs?"
+"Explain this Terraform configuration to me"
+```
+
+### 🚀 Quick Commands for Common Tasks
+
+#### Generate Infrastructure Code
+```bash
+# Generate different types of infrastructure
+
+# Simple web server
+proxmox-ai generate terraform "Ubuntu web server with nginx, 2GB RAM"
+
+# Development environment  
+proxmox-ai generate terraform "Development cluster with 3 VMs and shared storage"
+
+# Database server
+proxmox-ai generate terraform "PostgreSQL database server with backup storage"
+
+# Multi-tier application
+proxmox-ai generate terraform "Web app with load balancer, app servers, and database"
+```
+
+#### Generate Automation Scripts
+```bash
+# Ansible playbooks for configuration
+
+# Server hardening
+proxmox-ai generate ansible "Harden Ubuntu servers with firewall and security updates"
+
+# Software installation
+proxmox-ai generate ansible "Install Docker and configure container environment"
+
+# Monitoring setup
+proxmox-ai generate ansible "Install and configure Prometheus monitoring"
+```
+
+#### Analyze and Improve Existing Code
+```bash
+# Get help with existing configurations
+
+# Explain what a configuration does
+proxmox-ai explain my-terraform-config.tf
+
+# Get optimization suggestions  
+proxmox-ai optimize my-infrastructure.tf
+
+# Security review
+proxmox-ai security-review my-vm-config.tf
+
+# Fix common issues
+proxmox-ai fix problematic-config.tf
+```
+
+### 🎯 Skill Level Adaptation
+
+The AI adapts its responses based on your skill level:
+
+#### Beginner Level
+```bash
+# Set beginner mode for detailed explanations
+proxmox-ai config set ai.skill_level beginner
+
+# Example response includes:
+# ✅ Step-by-step explanations
+# ✅ What each setting means
+# ✅ Why certain choices are made
+# ✅ Safety warnings and best practices
+# ✅ Links to learn more
+```
+
+#### Intermediate Level (Default)
+```bash
+# Set intermediate mode for practical focus
+proxmox-ai config set ai.skill_level intermediate
+
+# Example response includes:
+# ✅ Production-ready configurations
+# ✅ Best practices integrated
+# ✅ Reasonable automation
+# ✅ Performance considerations
+```
+
+#### Expert Level
+```bash
+# Set expert mode for advanced features
+proxmox-ai config set ai.skill_level expert
+
+# Example response includes:
+# ✅ Advanced optimization options
+# ✅ Enterprise patterns
+# ✅ Performance tuning
+# ✅ Complex scenarios
+```
+
+### 📊 System Management Commands
+
+#### Check System Status
+```bash
+# Quick health check
+proxmox-ai status
+
+# Comprehensive diagnostics
+proxmox-ai doctor
+
+# View configuration
+proxmox-ai config list
+
+# Hardware analysis
+proxmox-ai hardware-info
+```
+
+#### AI Model Management  
+```bash
+# Check AI status
+proxmox-ai ai-status
+
+# See available models
+proxmox-ai ai models
+
+# Switch to different model
+proxmox-ai ai switch-model llama3.1:8b-instruct-q8_0
+
+# Optimize for your hardware
+proxmox-ai ai optimize
+```
+
+#### VM Operations
+```bash
+# List all VMs
+proxmox-ai vm list
+
+# Get VM details
+proxmox-ai vm info 101
+
+# Start/stop VMs
+proxmox-ai vm start 101
+proxmox-ai vm stop 101
+
+# Create VM from generated config
+proxmox-ai vm create my-server-config.tf
+```
+
+### 🔍 Getting Help and Learning
+
+#### Interactive Help
+```bash
+# Start a learning conversation
+proxmox-ai chat
+# Then ask: "I'm new to this, teach me about virtual machines"
+
+# Get help with specific topics
+proxmox-ai ask "How do I set up VM networking?"
+proxmox-ai ask "What's the difference between containers and VMs?"
+proxmox-ai ask "How do I backup my infrastructure?"
+```
+
+#### Command Help
+```bash
+# Get help for any command
+proxmox-ai --help
+proxmox-ai generate --help
+proxmox-ai vm --help
+
+# Examples and tutorials
+proxmox-ai examples terraform
+proxmox-ai tutorial "first-vm"
+```
+
+### 🔧 Common Workflows
+
+#### Workflow 1: Create Your First VM
+```bash
+# Step 1: Generate the configuration
+proxmox-ai generate terraform "Simple Ubuntu server for learning" --output vm-config.tf
+
+# Step 2: Review and understand
+proxmox-ai explain vm-config.tf
+
+# Step 3: Test the configuration  
+proxmox-ai validate vm-config.tf
+
+# Step 4: Deploy (when ready)
+proxmox-ai vm create vm-config.tf
+```
+
+#### Workflow 2: Learn and Experiment
+```bash
+# Start interactive learning
+proxmox-ai chat
+
+# Ask questions like:
+"What happens if I increase the RAM in my VM?"
+"How do I add a second network interface?"
+"Show me examples of different VM configurations"
+"What are the security best practices?"
+```
+
+#### Workflow 3: Optimize Existing Infrastructure
+```bash
+# Analyze current setup
+proxmox-ai analyze my-infrastructure/
+
+# Get optimization recommendations
+proxmox-ai optimize my-infrastructure/
+
+# Review security
+proxmox-ai security-review my-infrastructure/
+
+# Generate improvements
+proxmox-ai improve my-infrastructure/ --focus performance
+```
+
+### 💡 Pro Tips for Success
+
+#### Start Simple
+```bash
+# Begin with basic VMs
+proxmox-ai generate terraform "Single Ubuntu VM" --skill beginner
+
+# Gradually increase complexity
+proxmox-ai generate terraform "Ubuntu VM with custom networking" --skill intermediate
+
+# Eventually tackle complex scenarios  
+proxmox-ai generate terraform "High-availability web cluster" --skill expert
+```
+
+#### Use the Chat Mode
+```bash
+# Chat is perfect for learning
+proxmox-ai chat
+
+# Ask follow-up questions
+"Can you explain that in simpler terms?"
+"What would happen if I changed this setting?"
+"Show me a different way to do this"
+```
+
+#### Save and Reuse
+```bash
+# Save configurations for reuse
+proxmox-ai generate terraform "Web server template" --output templates/web-server.tf
+
+# Create variations
+proxmox-ai modify templates/web-server.tf "Add 4GB RAM and SSD storage"
+
+# Build libraries
+mkdir templates/
+proxmox-ai generate terraform "Database server" --output templates/database.tf
+proxmox-ai generate terraform "Load balancer" --output templates/lb.tf
+```
+
+---
+
+## 🎓 Skill Level Progression Guide
+
+### 🌱 Beginner (Week 1-2)
+**Goal**: Understand basics and create simple VMs
+
+```bash
+# Start here
+proxmox-ai config set ai.skill_level beginner
+
+# Learn fundamentals
+proxmox-ai chat
+# Ask: "Explain virtual machines in simple terms"
+# Ask: "What is Infrastructure as Code?"
+
+# First tasks
+proxmox-ai generate terraform "Simple test VM"
+proxmox-ai explain my-first-vm.tf
+```
+
+**Checklist for Beginners:**
+- [ ] Successfully created first VM configuration
+- [ ] Understand what each section does  
+- [ ] Can explain memory, CPU, and storage settings
+- [ ] Know how to ask for help
+
+### 🌿 Intermediate (Week 3-4)
+**Goal**: Create production-ready multi-VM setups
+
+```bash
+# Progress to intermediate
+proxmox-ai config set ai.skill_level intermediate
+
+# More complex scenarios
+proxmox-ai generate terraform "Web application with database backend"
+proxmox-ai generate ansible "Automate server configuration"
+
+# Learn best practices
+proxmox-ai security-review my-infrastructure.tf
+proxmox-ai optimize my-infrastructure.tf
+```
+
+**Checklist for Intermediate:**
+- [ ] Can create multi-VM configurations
+- [ ] Understand networking and security basics
+- [ ] Use Ansible for automation
+- [ ] Follow security best practices
+
+### 🌳 Expert (Week 5+)
+**Goal**: Enterprise-grade infrastructure automation
+
+```bash
+# Advance to expert level
+proxmox-ai config set ai.skill_level expert
+
+# Complex scenarios
+proxmox-ai generate terraform "HA Kubernetes cluster with persistent storage"
+proxmox-ai generate terraform "Multi-tier application with monitoring"
+
+# Advanced operations
+proxmox-ai analyze production-infrastructure/
+proxmox-ai optimize --focus performance production-infrastructure/
+```
+
+**Checklist for Expert:**
+- [ ] Design complex, scalable architectures
+- [ ] Implement high availability and disaster recovery
+- [ ] Optimize for performance and cost
+- [ ] Integrate with existing enterprise systems
+
+---
+
+## 🆘 Troubleshooting
    git --version  # Usually pre-installed
    
    # Windows: Download from git-scm.com

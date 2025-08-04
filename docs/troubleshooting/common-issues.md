@@ -1,12 +1,671 @@
-# Proxmox AI Infrastructure Assistant - Common Issues & Solutions
+# 🔧 Troubleshooting Guide - Common Issues & Solutions
 
-## Overview
+## 🎯 Quick Problem Solver
 
-This document provides solutions to frequently encountered issues in the Proxmox AI Infrastructure Assistant environment. All solutions include security considerations and verification steps.
+**🚨 Having issues?** Choose your situation:
 
-## Authentication and Access Issues
+- [🚫 Can't connect to Proxmox](#connection-issues) - Network, SSH, or API problems
+- [🤖 AI not responding](#ai-issues) - Ollama or model problems  
+- [🐍 Python errors](#python-issues) - Installation or dependency problems
+- [🔐 Authentication failed](#authentication-issues) - Login or permission problems
+- [💾 Out of space](#storage-issues) - Disk space or storage problems
+- [🐌 Running slowly](#performance-issues) - Speed or resource problems
+- [❓ Something else](#other-issues) - General problems and solutions
 
-### Issue: SSH Key Authentication Failures
+---
+
+## 🔍 Quick Diagnosis
+
+Run this first to identify your issue:
+
+```bash
+# Comprehensive system check
+proxmox-ai doctor
+
+# This checks:
+# ✅ Python environment
+# ✅ Ollama AI service  
+# ✅ Proxmox connectivity
+# ✅ Configuration validity
+# ✅ Available resources
+# ✅ Security settings
+```
+
+---
+
+## 🚫 Connection Issues
+
+### Problem: Can't Connect to Proxmox
+
+#### 🔍 Quick Check
+```bash
+# Test basic connectivity
+ping -c 3 YOUR_PROXMOX_HOST
+
+# Test SSH connection
+ssh root@YOUR_PROXMOX_HOST
+
+# Test Proxmox web interface
+curl -k https://YOUR_PROXMOX_HOST:8006/api2/json/version
+```
+
+#### ✅ Solution Steps
+
+**Step 1: Verify Network Connectivity**
+```bash
+# Check if Proxmox host is reachable
+ping -c 5 192.168.1.50
+
+# If ping fails, check:
+# - Is Proxmox host powered on?
+# - Is the IP address correct?
+# - Are you on the same network?
+```
+
+**Step 2: Test SSH Access**
+```bash
+# Test SSH with verbose output
+ssh -v root@192.168.1.50
+
+# Common fixes:
+# - Check if SSH service is running: systemctl status ssh
+# - Verify SSH port (default 22): ssh -p 2849 root@192.168.1.50
+# - Check firewall rules: sudo ufw status
+```
+
+**Step 3: Test API Access**
+```bash
+# Test Proxmox API
+curl -k https://192.168.1.50:8006/api2/json/version
+
+# If this fails:
+# - Check if Proxmox web interface is accessible
+# - Verify port 8006 is open
+# - Check SSL certificate issues
+```
+
+**Step 4: Fix Configuration**
+```bash
+# Update Proxmox host settings
+proxmox-ai config set proxmox.host "192.168.1.50"
+proxmox-ai config set proxmox.port "8006"
+
+# Test the connection
+proxmox-ai vm list
+```
+
+---
+
+## 🤖 AI Issues
+
+### Problem: AI Not Responding or Slow
+
+#### 🔍 Quick Check
+```bash
+# Check Ollama service
+curl http://localhost:11434/api/tags
+
+# Check available models
+ollama list
+
+# Test AI response
+proxmox-ai ask "hello"
+```
+
+#### ✅ Solution Steps
+
+**Step 1: Start Ollama Service**
+```bash
+# Start Ollama (if not running)
+ollama serve &
+
+# Check if it's running
+ps aux | grep ollama
+curl http://localhost:11434/api/tags
+```
+
+**Step 2: Download AI Model**
+```bash
+# Check what models you have
+ollama list
+
+# If no models, download one based on your RAM:
+# 4-6GB RAM:
+ollama pull llama3.2:3b-instruct-q4_0
+
+# 6-12GB RAM:
+ollama pull llama3.1:8b-instruct-q4_0
+
+# 12GB+ RAM:
+ollama pull llama3.1:8b-instruct-q8_0
+```
+
+**Step 3: Configure AI Model**
+```bash
+# Set the model in configuration
+proxmox-ai config set ai.model "llama3.1:8b-instruct-q4_0"
+
+# Test AI functionality
+proxmox-ai ai-status
+proxmox-ai ask "test response"
+```
+
+**Step 4: Memory Issues**
+```bash
+# Check available memory
+free -h
+
+# Switch to smaller model if needed
+proxmox-ai ai switch-model llama3.2:3b-instruct-q4_0
+
+# Or reduce memory usage
+proxmox-ai config set ai.max_memory_gb 4
+```
+
+---
+
+## 🐍 Python Issues
+
+### Problem: Python Installation or Import Errors
+
+#### 🔍 Quick Check
+```bash
+# Check Python version
+python3.12 --version || python3 --version
+
+# Check if proxmox-ai is installed
+proxmox-ai --version
+
+# Check for import errors
+python3 -c "import typer, rich, proxmoxer"
+```
+
+#### ✅ Solution Steps
+
+**Step 1: Install Python 3.12+**
+```bash
+# Ubuntu/Debian
+sudo apt update
+sudo apt install python3.12 python3.12-venv python3.12-pip
+
+# macOS
+brew install python@3.12
+
+# Windows
+winget install Python.Python.3.12
+
+# Verify installation
+python3.12 --version
+```
+
+**Step 2: Create Virtual Environment**
+```bash
+# Create clean virtual environment
+python3.12 -m venv proxmox-ai-env
+
+# Activate it
+source proxmox-ai-env/bin/activate  # Linux/macOS
+# proxmox-ai-env\Scripts\activate   # Windows
+
+# Verify activation
+which python  # Should point to venv
+```
+
+**Step 3: Install Dependencies**
+```bash
+# Ensure you're in the project directory
+cd ~/projects/iac-ai-assistant
+
+# Install with pip
+pip install --upgrade pip
+pip install -e .
+
+# Or install specific dependencies
+pip install -r requirements.txt
+
+# Verify installation
+proxmox-ai --version
+```
+
+**Step 4: Fix Import Errors**
+```bash
+# Clear Python cache
+find . -type d -name __pycache__ -exec rm -rf {} +
+find . -name "*.pyc" -delete
+
+# Reinstall problematic packages
+pip install --force-reinstall typer rich proxmoxer
+
+# Test imports
+python3 -c "import src.proxmox_ai.cli.main"
+```
+
+---
+
+## 🔐 Authentication Issues
+
+### Problem: Can't Login to Proxmox
+
+#### 🔍 Quick Check
+```bash
+# Test SSH authentication
+ssh root@YOUR_PROXMOX_HOST
+
+# Test API authentication
+proxmox-ai vm list
+
+# Check stored credentials
+proxmox-ai config get proxmox.user
+proxmox-ai config get proxmox.host
+```
+
+#### ✅ Solution Steps
+
+**Step 1: Fix SSH Authentication**
+```bash
+# Generate new SSH key if needed
+ssh-keygen -t ed25519 -f ~/.ssh/proxmox_ai_key
+
+# Copy key to Proxmox host
+ssh-copy-id -i ~/.ssh/proxmox_ai_key.pub root@192.168.1.50
+
+# Test SSH key authentication
+ssh -i ~/.ssh/proxmox_ai_key root@192.168.1.50
+
+# Update configuration
+proxmox-ai config set proxmox.ssh_key ~/.ssh/proxmox_ai_key
+```
+
+**Step 2: Fix API Authentication**
+```bash
+# Method 1: Use API Token (Recommended)
+# Create token in Proxmox web interface:
+# Datacenter → API Tokens → Add
+
+# Set token in configuration
+proxmox-ai config set proxmox.api_token "PVEAPIToken=root@pam!tokenname=your-token-uuid"
+
+# Method 2: Use Password (Less Secure)
+proxmox-ai config set proxmox.password "your-proxmox-password"
+```
+
+**Step 3: Test Authentication**
+```bash
+# Test connection
+proxmox-ai vm list
+
+# If still failing, check logs
+proxmox-ai logs --error
+
+# Reset authentication
+proxmox-ai config init --reset-auth
+```
+
+---
+
+## 💾 Storage Issues
+
+### Problem: Out of Disk Space
+
+#### 🔍 Quick Check
+```bash
+# Check disk space
+df -h
+
+# Check AI model sizes
+ollama list
+
+# Check application cache
+du -sh ~/.cache/proxmox-ai/
+```
+
+#### ✅ Solution Steps
+
+**Step 1: Free Up Space**
+```bash
+# Remove unused AI models
+ollama list
+ollama rm unused-model-name
+
+# Clear application cache
+rm -rf ~/.cache/proxmox-ai/
+
+# Clear system logs
+sudo journalctl --vacuum-time=7d
+```
+
+**Step 2: Use Smaller AI Model**
+```bash
+# Switch to smaller model
+ollama pull llama3.2:3b-instruct-q4_0
+proxmox-ai ai switch-model llama3.2:3b-instruct-q4_0
+
+# Remove larger models
+ollama rm llama3.1:70b-instruct-q4_0
+```
+
+**Step 3: Clean Up System**
+```bash
+# Remove old packages (Ubuntu/Debian)
+sudo apt autoremove
+sudo apt autoclean
+
+# Clear temporary files
+sudo rm -rf /tmp/*
+rm -rf ~/.cache/*
+
+# Check space again
+df -h
+```
+
+---
+
+## 🐌 Performance Issues
+
+### Problem: System Running Slowly
+
+#### 🔍 Quick Check
+```bash
+# Check system resources
+htop  # or top
+free -h
+iostat -x 1 5
+
+# Check AI model performance
+proxmox-ai ai stats
+```
+
+#### ✅ Solution Steps
+
+**Step 1: Optimize AI Model**
+```bash
+# Check hardware recommendations
+proxmox-ai hardware-info
+
+# Use optimal model for your hardware
+proxmox-ai ai optimize
+
+# Enable caching
+proxmox-ai config set ai.cache_enabled true
+```
+
+**Step 2: Reduce Memory Usage**
+```bash
+# Switch to smaller model
+proxmox-ai ai switch-model llama3.2:3b-instruct-q4_0
+
+# Limit memory usage
+proxmox-ai config set ai.max_memory_gb 4
+
+# Close other applications
+# Stop unnecessary services
+```
+
+**Step 3: Optimize Network**
+```bash
+# Check network latency
+ping -c 10 YOUR_PROXMOX_HOST
+
+# Use local network addresses
+proxmox-ai config set proxmox.host "192.168.1.50"  # Not public IP
+
+# Optimize SSH settings
+echo "ServerAliveInterval 60" >> ~/.ssh/config
+```
+
+---
+
+## ❓ Other Issues
+
+### Problem: Command Not Found
+
+#### 🔍 Quick Check
+```bash
+# Check if proxmox-ai is installed
+which proxmox-ai
+proxmox-ai --version
+
+# Check if in correct directory
+pwd
+ls -la
+```
+
+#### ✅ Solution
+```bash
+# If not installed, install it
+cd ~/projects/iac-ai-assistant
+pip install -e .
+
+# Or add to PATH
+export PATH=$PATH:$PWD/src/proxmox_ai/cli
+echo 'export PATH=$PATH:~/projects/iac-ai-assistant/src/proxmox_ai/cli' >> ~/.bashrc
+
+# Reload shell
+source ~/.bashrc
+```
+
+### Problem: Configuration Not Saved
+
+#### 🔍 Quick Check
+```bash
+# Check configuration
+proxmox-ai config list
+
+# Check config file location
+ls -la ~/.config/proxmox-ai/
+```
+
+#### ✅ Solution
+```bash
+# Create config directory
+mkdir -p ~/.config/proxmox-ai/
+
+# Initialize configuration
+proxmox-ai config init
+
+# Set permissions
+chmod 700 ~/.config/proxmox-ai/
+chmod 600 ~/.config/proxmox-ai/config.yaml
+```
+
+### Problem: Terraform/Ansible Not Working
+
+#### 🔍 Quick Check
+```bash
+# Check if tools are installed
+terraform --version
+ansible --version
+
+# Test generated code
+proxmox-ai generate terraform "test vm" --output test.tf
+terraform validate test.tf
+```
+
+#### ✅ Solution
+```bash
+# Install Terraform
+wget https://releases.hashicorp.com/terraform/1.6.0/terraform_1.6.0_linux_amd64.zip
+unzip terraform_1.6.0_linux_amd64.zip
+sudo mv terraform /usr/local/bin/
+
+# Install Ansible
+pip install ansible
+
+# Verify installation
+terraform --version
+ansible --version
+```
+
+---
+
+## 🆘 Emergency Recovery
+
+### Complete System Reset
+
+If everything is broken, start fresh:
+
+```bash
+# 1. Backup important configurations
+cp ~/.config/proxmox-ai/config.yaml ~/config-backup.yaml
+
+# 2. Remove everything
+rm -rf ~/projects/iac-ai-assistant
+rm -rf ~/.config/proxmox-ai/
+rm -rf ~/.cache/proxmox-ai/
+
+# 3. Kill Ollama processes
+pkill ollama
+
+# 4. Fresh installation
+curl -fsSL https://raw.githubusercontent.com/diszay/iac-ai-assistant/main/scripts/express-install.sh | bash
+
+# 5. Restore configuration
+cp ~/config-backup.yaml ~/.config/proxmox-ai/config.yaml
+```
+
+### Get Help from AI
+
+When stuck, ask the AI for help:
+
+```bash
+# Start interactive troubleshooting
+proxmox-ai chat
+
+# Then describe your problem:
+"I'm having trouble with [describe your issue]. Can you help me troubleshoot?"
+"My AI is not responding, what should I check?"
+"I can't connect to Proxmox, what are the common causes?"
+```
+
+---
+
+## 💡 Prevention Tips
+
+### Regular Maintenance
+
+```bash
+# Weekly system check
+proxmox-ai doctor
+
+# Monthly updates
+proxmox-ai update
+ollama list  # Check for model updates
+
+# Quarterly cleanup
+proxmox-ai cleanup
+ollama rm unused-models
+```
+
+### Monitoring Setup
+
+```bash
+# Set up health monitoring
+echo "0 */6 * * * /usr/local/bin/proxmox-ai status >> /var/log/proxmox-ai-health.log 2>&1" | crontab -
+
+# Monitor disk space
+echo "0 0 * * * df -h | mail -s 'Disk Space Report' your-email@domain.com" | crontab -
+
+# Monitor AI performance
+proxmox-ai config set ai.performance_monitoring true
+```
+
+### Backup Strategy
+
+```bash
+# Backup configuration
+mkdir -p ~/backups/proxmox-ai/
+cp -r ~/.config/proxmox-ai/ ~/backups/proxmox-ai/config-$(date +%Y%m%d)/
+
+# Backup generated configurations
+tar -czf ~/backups/proxmox-ai/generated-configs-$(date +%Y%m%d).tar.gz ~/projects/iac-ai-assistant/generated/
+
+# Backup AI models (optional - they can be re-downloaded)
+# ollama list > ~/backups/proxmox-ai/models-list-$(date +%Y%m%d).txt
+```
+
+---
+
+## 🔗 Getting More Help
+
+### Built-in Help System
+
+```bash
+# General help
+proxmox-ai --help
+
+# Command-specific help
+proxmox-ai generate --help
+proxmox-ai vm --help
+proxmox-ai config --help
+
+# Interactive help
+proxmox-ai chat
+# Ask: "Help me troubleshoot [your issue]"
+```
+
+### Documentation Resources
+
+- **Requirements**: `/requirements.md` - System requirements and setup
+- **Getting Started**: `/GETTING_STARTED.md` - Step-by-step setup guide
+- **Quick Reference**: `/docs/QUICK_REFERENCE.md` - Common commands and patterns
+- **Command Cheatsheet**: `/docs/COMMAND_CHEATSHEET.md` - All available commands
+- **User Guides**: `/docs/user-guides/` - Skill-level specific guides
+- **Architecture**: `/docs/architecture/` - Technical documentation
+
+### Community Support
+
+```bash
+# Check for known issues
+proxmox-ai ask "Is there a known issue with [your problem]?"
+
+# Report bugs (include this information)
+proxmox-ai doctor > bug-report.txt
+proxmox-ai config list >> bug-report.txt
+proxmox-ai --version >> bug-report.txt
+uname -a >> bug-report.txt
+```
+
+### Emergency Contacts
+
+- **Critical Issues**: Use `proxmox-ai doctor` to generate diagnostic report
+- **Security Issues**: Follow `/SECURITY.md` reporting procedures  
+- **Documentation Issues**: Suggest improvements via GitHub issues
+
+---
+
+## 📊 Common Error Messages
+
+### "Connection refused"
+- **Cause**: Proxmox host not reachable or service not running
+- **Fix**: Check network, verify Proxmox is running, test with `ping` and `curl`
+
+### "Authentication failed"  
+- **Cause**: Wrong credentials or expired tokens
+- **Fix**: Verify credentials, regenerate API tokens, test SSH keys
+
+### "Model not found"
+- **Cause**: AI model not downloaded or wrong model name
+- **Fix**: `ollama list`, `ollama pull model-name`, update config
+
+### "Permission denied"
+- **Cause**: File permissions or user access issues
+- **Fix**: Check file permissions, verify user has proper access
+
+### "Out of memory"
+- **Cause**: AI model too large for available RAM
+- **Fix**: Switch to smaller model, close other applications
+
+### "Module not found"
+- **Cause**: Python dependency missing or virtual environment not activated
+- **Fix**: Activate venv, `pip install -e .`, check requirements
+
+---
+
+**🎯 Remember**: When in doubt, run `proxmox-ai doctor` first and ask the AI for help with `proxmox-ai chat`!
+
+**Document Version**: 1.0  
+**Last Updated**: 2025-07-30  
+**Troubleshooting Guide for**: Proxmox AI Infrastructure Assistant
 
 #### Symptoms
 - Connection refused when attempting SSH to Proxmox host

@@ -6,7 +6,7 @@
 # =============================================================================
 
 variable "proxmox_api_url" {
-  description = "Proxmox API URL (e.g., https://192.168.1.50:8006/api2/json)"
+  description = "Proxmox API URL (e.g., https://YOUR_PROXMOX_HOST:8006/api2/json)"
   type        = string
   validation {
     condition     = can(regex("^https://", var.proxmox_api_url))
@@ -400,7 +400,7 @@ variable "enable_cloud_init" {
 # =============================================================================
 
 variable "ip_config" {
-  description = "IP configuration per VM (e.g., 'ip=192.168.1.100/24,gw=192.168.1.1')"
+  description = "IP configuration per VM (e.g., 'ip=YOUR_VM_IP_START/24,gw=YOUR_VM_IP')"
   type        = list(string)
   default     = null
 }

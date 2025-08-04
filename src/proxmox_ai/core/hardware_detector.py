@@ -123,24 +123,61 @@ class HardwareDetector:
         
         return gpu_available, gpu_memory
     
+    def _get_available_models(self) -> list:
+        """Get list of available Ollama models."""
+        try:
+            result = subprocess.run(
+                ["ollama", "list"],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            if result.returncode == 0:
+                models = []
+                lines = result.stdout.strip().split('\n')[1:]  # Skip header
+                for line in lines:
+                    if line.strip():
+                        model_name = line.split()[0]  # First column is model name
+                        models.append(model_name)
+                logger.info("Available models detected", models=models)
+                return models
+        except Exception as e:
+            logger.warning("Failed to detect available models", error=str(e))
+        
+        return []
+    
     def get_optimal_model_config(self) -> ModelRecommendation:
         """Get optimal model configuration based on hardware."""
         available_memory = self.specs.available_memory_gb
         
-        # Model recommendations based on available memory
-        if available_memory >= 6.0:
-            # High-end configuration
+        # First, check what models are actually available
+        available_models = self._get_available_models()
+        
+        # Model recommendations based on available memory and available models
+        if available_memory >= 6.0 and "llama3.1:8b-instruct-q4_0" in available_models:
+            # Use the available Llama 3.1 model - excellent for IaC and technical tasks
             return ModelRecommendation(
-                model_name="codellama:7b-instruct-q4_K_M",
-                model_size="7B",
-                memory_usage_gb=4.5,
-                quantization="Q4_K_M",
+                model_name="llama3.1:8b-instruct-q4_0",
+                model_size="8B",
+                memory_usage_gb=4.7,
+                quantization="Q4_0",
+                inference_engine="llama.cpp",
+                max_context_length=8192,
+                expected_performance="High"
+            )
+        elif available_memory >= 4.0 and "llama3.1:8b-instruct-q4_0" in available_models:
+            # Still use Llama 3.1 but with reduced context
+            return ModelRecommendation(
+                model_name="llama3.1:8b-instruct-q4_0",
+                model_size="8B",
+                memory_usage_gb=4.7,
+                quantization="Q4_0",
                 inference_engine="llama.cpp",
                 max_context_length=4096,
                 expected_performance="High"
             )
         elif available_memory >= 4.0:
-            # Medium configuration
+            # Fallback to CodeLlama if available
             return ModelRecommendation(
                 model_name="codellama:7b-instruct-q4_0",
                 model_size="7B",
@@ -177,29 +214,61 @@ class HardwareDetector:
         """Get runtime configuration optimized for current hardware."""
         recommendation = self.get_optimal_model_config()
         
-        # CPU thread optimization
-        cpu_threads = min(self.specs.cpu_cores, 4)  # Cap at 4 for efficiency
+        # CPU thread optimization for Intel N150 (4-core, low power)
+        cpu_threads = min(self.specs.cpu_cores - 1, 3)  # Leave 1 core for system
+        
+        # Memory management for 7.8GB system
+        available_memory = self.specs.available_memory_gb
+        
+        # Optimize context length based on available memory
+        if available_memory > 6.0:
+            context_length = recommendation.max_context_length
+        elif available_memory > 4.0:
+            context_length = min(recommendation.max_context_length, 4096)
+        else:
+            context_length = min(recommendation.max_context_length, 2048)
         
         config = {
             "model": recommendation.model_name,
             "quantization": recommendation.quantization,
-            "max_context_length": recommendation.max_context_length,
+            "max_context_length": context_length,
             "cpu_threads": cpu_threads,
-            "memory_map": True,
-            "use_gpu": self.specs.gpu_available and self.specs.gpu_memory_gb > 2.0,
-            "batch_size": 1,  # Keep small for responsiveness
-            "temperature": 0.1,
+            "memory_map": True,  # Essential for memory efficiency
+            "use_gpu": False,  # Intel N150 integrated graphics not suitable for AI
+            "batch_size": 1,  # Keep small for responsiveness on low-power CPU
+            "temperature": 0.1,  # Low temperature for focused, technical responses
             "top_p": 0.9,
-            "timeout": 30,  # Reasonable timeout for local inference
-            "cache_enabled": True,
-            "stream_response": False  # Disable streaming for CLI usage
+            "top_k": 40,  # Add top_k for better response quality
+            "repeat_penalty": 1.1,  # Prevent repetition
+            "timeout": 20,  # Optimized shorter timeout for Intel N150 fast responses
+            "cache_enabled": True,  # Critical for performance
+            "stream_response": False,  # Disable streaming for CLI usage
+            "num_predict": 256,  # Reduced token generation for much faster responses on N150
+            "stop": ["Human:", "Assistant:", "User:"],  # Stop sequences
+            "low_vram": True,  # Use low VRAM mode for memory efficiency
+            "numa": False,  # Disable NUMA on single-socket systems
+            "main_gpu": -1,  # Force CPU-only inference
+            "tensor_split": None,  # Not applicable for CPU-only
+            "rope_freq_base": 10000.0,  # Standard RoPE frequency
+            "rope_freq_scale": 1.0
         }
+        
+        # Apply ultra-aggressive optimizations for Intel N150 specifically
+        if "N150" in self.specs.cpu_model:
+            config.update({
+                "timeout": 15,  # Even shorter timeout for ultra-low-power CPU
+                "num_predict": 128,  # Much shorter responses for faster generation
+                "max_context_length": min(config["max_context_length"], 2048),  # Smaller context
+                "temperature": 0.05,  # More focused responses
+                "cpu_threads": 2,  # Leave more resources for system
+            })
         
         return config
     
     def validate_model_compatibility(self, model_name: str) -> bool:
         """Validate if a model can run on current hardware."""
         model_memory_requirements = {
+            "llama3.1:8b": 4.7,
             "codellama:7b": 4.5,
             "codellama:13b": 8.0,
             "deepseek-coder:1.3b": 1.8,

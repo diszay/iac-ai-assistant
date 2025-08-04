@@ -83,7 +83,7 @@ class TemplateService:
                 str(self.template_dir),
                 str(self.custom_template_dir)
             ]),
-            autoescape=False,
+            autoescape=True,
             trim_blocks=True,
             lstrip_blocks=True
         )
