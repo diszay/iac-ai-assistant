@@ -23,6 +23,7 @@ from ..core.config import get_settings, Settings
 from ..core.logging import setup_logging
 from ..core.security import CredentialManager
 from .commands import vm_commands, config_commands, ai_commands
+from .commands.enterprise_ai_commands import enterprise_ai
 
 # Initialize console and logger
 console = Console()
@@ -54,6 +55,7 @@ def create_app() -> typer.Typer:
     app.add_typer(vm_commands, name="vm", help="VM lifecycle operations")
     app.add_typer(config_commands, name="config", help="Configuration management")
     app.add_typer(ai_commands, name="ai", help="AI-powered automation")
+    app.add_typer(enterprise_ai, name="enterprise", help="Enterprise-grade AI features")
     
     return app
 

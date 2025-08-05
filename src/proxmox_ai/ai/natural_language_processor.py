@@ -1,53 +1,169 @@
 """
-Natural Language Processing module for the Proxmox AI Assistant.
+Advanced Natural Language Processing for Infrastructure Automation.
 
-This module provides intelligent parsing and understanding of user prompts,
-converting natural language requests into structured commands and recommendations.
+This module provides sophisticated NLP capabilities for parsing complex infrastructure
+requests, understanding user intent, and extracting technical parameters with high
+accuracy and context awareness. Enhanced with enterprise-grade features including
+semantic similarity, entity recognition, and context-aware parsing.
 """
 
 import re
 import json
-from typing import Dict, List, Optional, Tuple, Any
-from dataclasses import dataclass
+import time
+import asyncio
+from typing import Dict, List, Optional, Tuple, Any, Set, Union
+from dataclasses import dataclass, field
 from enum import Enum
+from collections import defaultdict, Counter
 import structlog
+
+# Advanced NLP libraries
+try:
+    from sentence_transformers import SentenceTransformer
+    import numpy as np
+    from sklearn.metrics.pairwise import cosine_similarity
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    ADVANCED_NLP_AVAILABLE = True
+except ImportError:
+    ADVANCED_NLP_AVAILABLE = False
+
+# Optional spaCy for advanced entity recognition
+try:
+    import spacy
+    SPACY_AVAILABLE = True
+except ImportError:
+    SPACY_AVAILABLE = False
+
+from ..core.hardware_detector import hardware_detector
 
 logger = structlog.get_logger(__name__)
 
 
 class IntentType(Enum):
-    """Types of user intents we can recognize."""
+    """Types of user intents we can recognize - enhanced with advanced categories."""
+    # Core Infrastructure Operations
     CREATE_VM = "create_vm"
     DEPLOY_INFRASTRUCTURE = "deploy_infrastructure"
+    SCALE_INFRASTRUCTURE = "scale_infrastructure"
+    MIGRATE_WORKLOAD = "migrate_workload"
+    BACKUP_RESTORE = "backup_restore"
+    
+    # Code Generation
     GENERATE_TERRAFORM = "generate_terraform"
     GENERATE_ANSIBLE = "generate_ansible"
+    GENERATE_KUBERNETES = "generate_kubernetes"
+    GENERATE_DOCKER = "generate_docker"
+    GENERATE_PIPELINE = "generate_pipeline"
+    
+    # Analysis and Optimization
     SECURITY_REVIEW = "security_review"
     OPTIMIZE_CONFIG = "optimize_config"
+    PERFORMANCE_ANALYSIS = "performance_analysis"
+    COST_ANALYSIS = "cost_analysis"
+    COMPLIANCE_CHECK = "compliance_check"
+    
+    # Learning and Support
     EXPLAIN_CODE = "explain_code"
     TROUBLESHOOT = "troubleshoot"
     BEST_PRACTICES = "best_practices"
-    GENERAL_QUESTION = "general_question"
+    TUTORIAL_REQUEST = "tutorial_request"
+    
+    # System Operations
+    MONITOR_INFRASTRUCTURE = "monitor_infrastructure"
     SYSTEM_STATUS = "system_status"
+    HEALTH_CHECK = "health_check"
+    
+    # General
+    GENERAL_QUESTION = "general_question"
     HELP = "help"
+    VISUALIZATION = "visualization"
 
 
 class InfrastructureType(Enum):
-    """Types of infrastructure components."""
+    """Types of infrastructure components - enhanced with cloud and modern architectures."""
+    # Traditional Infrastructure
     WEB_SERVER = "web_server"
     DATABASE = "database"
     LOAD_BALANCER = "load_balancer"
+    STORAGE = "storage"
+    NETWORK = "network"
+    FIREWALL = "firewall"
+    
+    # Containerization
     KUBERNETES = "kubernetes"
     DOCKER = "docker"
+    HELM = "helm"
+    ISTIO = "istio"
+    
+    # Cloud Services
+    AWS = "aws"
+    AZURE = "azure"
+    GCP = "gcp"
+    OPENSTACK = "openstack"
+    
+    # Monitoring and Observability
     MONITORING = "monitoring"
+    LOGGING = "logging"
+    ALERTING = "alerting"
+    METRICS = "metrics"
+    
+    # CI/CD and DevOps
+    JENKINS = "jenkins"
+    GITLAB = "gitlab"
+    GITHUB_ACTIONS = "github_actions"
+    TERRAFORM = "terraform"
+    ANSIBLE = "ansible"
+    
+    # Environments
     DEVELOPMENT = "development"
     PRODUCTION = "production"
     STAGING = "staging"
     TESTING = "testing"
+    
+    # Virtualization
+    PROXMOX = "proxmox"
+    VMWARE = "vmware"
+    HYPERV = "hyperv"
+
+
+class ComplexityLevel(Enum):
+    """Complexity levels for requests."""
+    SIMPLE = "simple"
+    MODERATE = "moderate"
+    COMPLEX = "complex"
+    ENTERPRISE = "enterprise"
+
+
+class ConfidenceLevel(Enum):
+    """Confidence levels for NLP analysis."""
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    VERY_HIGH = "very_high"
+
+
+@dataclass
+class EntityExtraction:
+    """Represents extracted entities from text."""
+    entity_type: str
+    value: str
+    confidence: float
+    position: Tuple[int, int]  # Start and end positions
+    context: Optional[str] = None
+
+
+@dataclass
+class SemanticSimilarity:
+    """Semantic similarity analysis result."""
+    query: str
+    matches: List[Tuple[str, float]]  # (text, similarity_score)
+    best_match: Optional[str] = None
+    confidence: float = 0.0
 
 
 @dataclass
 class ParsedIntent:
-    """Structured representation of user intent."""
+    """Enhanced structured representation of user intent with advanced features."""
     intent_type: IntentType
     confidence: float
     infrastructure_type: Optional[InfrastructureType]
@@ -55,6 +171,22 @@ class ParsedIntent:
     skill_level: str
     urgency: str
     entities: Dict[str, List[str]]
+    
+    # Enhanced features
+    complexity_level: ComplexityLevel = ComplexityLevel.MODERATE
+    extracted_entities: List[EntityExtraction] = field(default_factory=list)
+    semantic_matches: List[SemanticSimilarity] = field(default_factory=list)
+    context_keywords: List[str] = field(default_factory=list)
+    technical_terms: List[str] = field(default_factory=list)
+    confidence_breakdown: Dict[str, float] = field(default_factory=dict)
+    processing_time: float = 0.0
+    language_detected: str = "en"
+    sentiment: str = "neutral"  # positive, negative, neutral
+    
+    # Multi-turn conversation support
+    requires_clarification: bool = False
+    clarification_questions: List[str] = field(default_factory=list)
+    previous_context: Optional[str] = None
 
 
 class NaturalLanguageProcessor:
