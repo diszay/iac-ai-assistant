@@ -578,7 +578,7 @@ pveceph osd create /dev/sdc
 pveceph pool create ceph-pool --size 2 --min_size 1
 
 # Add Ceph storage to Proxmox
-pvesm add cephfs ceph-storage --server {10.0.0.1} --username admin --content backup,vztmpl,iso,images"""
+pvesm add cephfs ceph-storage --server 10.0.0.1 --username admin --content backup,vztmpl,iso,images"""
                 difficulty = 'expert'
             
             prompts.append(prompt)
